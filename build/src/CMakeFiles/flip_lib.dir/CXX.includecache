@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/work/NemotoU/tom/flip_gpu/src/code.cpp
+code.h
+/work/NemotoU/tom/flip_gpu/src/code.h
+
+/work/NemotoU/tom/flip_gpu/src/code.h
+stdexcept
+-
+

@@ -1,4 +1,4 @@
-#include "flip.cuh"
+#include "decode.cuh"
 
 __global__
 void createStates(int N, unsigned int seed, curandState_t* states)
@@ -46,13 +46,13 @@ void flip(int* lookup , int* qubits, int* syndrome, int* faceToEdges)
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
     if (lookup[threadID] == 1)
     {
-        int* edges = faceToEdges[threadID];
         int n = 0;
         for (int i=0; i<4; i++)
         {
-            if (d_syndrome[edges[i]] == 1) n++;
+            //faceToEdges is a flat array on the gpu
+            if (syndrome[faceToEdges[4*threadID+i]] == 1) n++;
         }
-        if (n > 2) d_qubits[threadID] = (d_qubits[threadID] + 1) % 2;
+        if (n > 2) qubits[threadID] = (qubits[threadID] + 1) % 2;
     }
 }
 
@@ -63,11 +63,10 @@ void pflip(int* lookup, int* qubits, int* syndrome, int* faceToEdges, curandStat
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
     if (lookup[threadID] == 1)
     {
-        int* edges = faceToEdges[threadID];
         int n = 0;
         for (int i=0; i<4; i++)
         {
-            if (syndrome[edges[i]] == 1) n++;
+            if (syndrome[faceToEdges[4*threadID+i]] == 1) n++;
         }
         if (n > 2) qubits[threadID] = (qubits[threadID] + 1) % 2;
         if (n == 2) 
@@ -86,11 +85,10 @@ void updateSyndrome(int* lookup , int* qubits, int* syndrome, int* edgeToFaces)
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per stabiliser
     if (lookup[threadID] == 1)
     {
-        int* faces = edgeToFaces[threadID];
         int parity = 0;
         for (int i=0; i<4; i++)
         {
-            if (qubits[faces[i]] == 1) parity = (parity + 1) % 2;
+            if (qubits[edgeToFaces[4*threadID+i]] == 1) parity = (parity + 1) % 2;
         }
         syndrome[threadID] = parity;
     }

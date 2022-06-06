@@ -1,0 +1,1 @@
+/opt/rh/devtoolset-8/root/usr/bin/c++  -g   CMakeFiles/flip.dir/main.cu.o CMakeFiles/flip.dir/decode.cu.o CMakeFiles/flip.dir/code.cpp.o CMakeFiles/flip.dir/cmake_device_link.o  -o flip  -L/usr/local/cuda-11.1/targets/x86_64-linux/lib/stubs -lcudadevrt -lcudart_static -lrt -lpthread -ldl 

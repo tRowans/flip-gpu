@@ -25,13 +25,16 @@ class Code
         void buildLogicalLookup();
         
     public:
+        int L;
+        char bounds;
+
         int** faceToEdges;      //cuda does not like copying to or from vectors etc 
         int** edgeToFaces;      //so these need to be set up like this
         int* qubitInclusionLookup;   //(the vectors above do not get used by the gpu)
         int* stabInclusionLookup;
         int* logicalInclusionLookup; 
 
-        Code(int lVal, char bounds);
+        Code(int lIn, char boundsIn);
         ~Code();
 };
 

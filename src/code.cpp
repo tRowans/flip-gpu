@@ -1,4 +1,4 @@
-#include "codeObj.h"
+#include "code.h"
 
 //-----------------------PRIVATE-----------------------
 
@@ -22,8 +22,8 @@ coord Code::indexToCoord(int i)
     {
         coord c;
         c.xi[0] = i % L;
-        c.xi[1] = (int)floor(i / L) % L;
-        c.xi[2] = (int)floor(i / (L * L)) % L;
+        c.xi[1] = (i / L) % L;
+        c.xi[2] = (i / (L * L)) % L;
         return c;
     }
     else
@@ -34,7 +34,7 @@ coord Code::indexToCoord(int i)
 
 int Code::neigh(int v, int dir, int sign)
 {
-    coord c = indexToCoord(v, L);
+    coord c = indexToCoord(v);
     if (sign > 0)
     {
         if (dir == 0) c.xi[0] = (c.xi[0] + 1) % L;
@@ -47,14 +47,14 @@ int Code::neigh(int v, int dir, int sign)
         else if (dir == 1) c.xi[1] = (c.xi[1] - 1 + L) % L;
         else if (dir == 2) c.xi[2] = (c.xi[2] - 1 + L) % L;
     }
-    return coordToIndex(c, L);
+    return coordToIndex(c);
 }
 
 int Code::edgeIndex(int v, int dir, int sign)
 {
     if (sign < 0)
     {
-        v = neigh(v, dir, sign, L);
+        v = neigh(v, dir, sign);
     }
     if (dir == x)
         return 3 * v;
@@ -76,24 +76,24 @@ void Code::buildFaceToEdges()
         //Because this also defines the read schedule for the GPU code
         if (dir == 0)
         {
-            faceToEdges[f][0] = edgeIndex(v, x, 1, L);
-            faceToEdges[f][1] = edgeIndex(v, y, 1, L);
-            faceToEdges[f][2] = edgeIndex(neigh(v, y, 1, L), x, 1, L);
-            faceToEdges[f][3] = edgeIndex(neigh(v, x, 1, L), y, 1, L);
+            faceToEdges[f][0] = edgeIndex(v, x, 1);
+            faceToEdges[f][1] = edgeIndex(v, y, 1);
+            faceToEdges[f][2] = edgeIndex(neigh(v, y, 1), x, 1);
+            faceToEdges[f][3] = edgeIndex(neigh(v, x, 1), y, 1);
         }
         else if (dir == 1)
         {
-            faceToEdges[f][0] = edgeIndex(v, z, 1, L);
-            faceToEdges[f][1] = edgeIndex(v, x, 1, L);
-            faceToEdges[f][2] = edgeIndex(neigh(v, x, 1, L), z, 1, L);
-            faceToEdges[f][3] = edgeIndex(neigh(v, z, 1, L), x, 1, L);
+            faceToEdges[f][0] = edgeIndex(v, z, 1);
+            faceToEdges[f][1] = edgeIndex(v, x, 1);
+            faceToEdges[f][2] = edgeIndex(neigh(v, x, 1), z, 1);
+            faceToEdges[f][3] = edgeIndex(neigh(v, z, 1), x, 1);
         }
         else if (dir == 2)
         {
-            faceToEdges[f][0] = edgeIndex(v, y, 1, L);
-            faceToEdges[f][1] = edgeIndex(v, z, 1, L);
-            faceToEdges[f][2] = edgeIndex(neigh(v, z, 1, L), y, 1, L);
-            faceToEdges[f][3] = edgeIndex(neigh(v, y, 1, L), z, 1, L);
+            faceToEdges[f][0] = edgeIndex(v, y, 1);
+            faceToEdges[f][1] = edgeIndex(v, z, 1);
+            faceToEdges[f][2] = edgeIndex(neigh(v, z, 1), y, 1);
+            faceToEdges[f][3] = edgeIndex(neigh(v, y, 1), z, 1);
         }
     }
 }
@@ -109,22 +109,22 @@ void Code::buildEdgeToFaces()
         {
             edgeToFaces[e][0] = 3*v; //xy
             edgeToFaces[e][1] = 3*v + 1; // xz
-            edgeToFaces[e][2] = 3*neigh(v, y, -1, L); // x,-y
-            edgeToFaces[e][3] = 3*neigh(v, z, -1, L) + 1; // x,-z
+            edgeToFaces[e][2] = 3*neigh(v, y, -1); // x,-y
+            edgeToFaces[e][3] = 3*neigh(v, z, -1) + 1; // x,-z
         }
         else if (dir == y)
         {
             edgeToFaces[e][0] = 3*v + 2; // yz
             edgeToFaces[e][1] = 3 * v; // xy
-            edgeToFaces[e][2] = 3*neigh(v, z, -1, L) + 2; // y,-z
-            edgeToFaces[e][3] = 3*neigh(v, x, -1, L); // -x,y
+            edgeToFaces[e][2] = 3*neigh(v, z, -1) + 2; // y,-z
+            edgeToFaces[e][3] = 3*neigh(v, x, -1); // -x,y
         }
         else if (dir == z)
         {
             edgeToFaces[e][0] = 3*v + 1; // xz
             edgeToFaces[e][1] = 3*v + 2; // yz
-            edgeToFaces[e][2] = 3*neigh(v, x, -1, L) + 1; // -x,z
-            edgeToFaces[e][3] = 3*neigh(v, y, -1, L) + 2; // -y,z
+            edgeToFaces[e][2] = 3*neigh(v, x, -1) + 1; // -x,z
+            edgeToFaces[e][3] = 3*neigh(v, y, -1) + 2; // -y,z
         }
     }
 }
@@ -148,7 +148,7 @@ void Code::buildQubitLookup()
         {
             int v = f / 3;
             int dir = f % 3;
-            coord cd = indexToCoord(v, L);
+            coord cd = indexToCoord(v);
             if (cd.xi[0] < (L-3) && cd.xi[1] < (L-3) && cd.xi[2] < (L-3))
             {
                 if (dir == 0) qubitInclusionLookup[f] = 1;
@@ -178,7 +178,7 @@ void Code::buildStabLookup()
         {
             int v = e / 3;
             int dir = e % 3;
-            coord cd = indexToCoord(v, L);
+            coord cd = indexToCoord(v);
 
             if (cd.xi[0] < (L-3) && cd.xi[1] < (L-3) && cd.xi[2] < (L-3))
             {
@@ -229,8 +229,11 @@ void Code::buildLogicalLookup()
 
 //-------------------------PUBLIC-------------------------
 
-Code::Code(int L, char bounds)
+Code::Code(int lIn, char boundsIn)
 {
+    L = lIn;
+    bounds = boundsIn;
+
     //This is a trick to get a dynamically allocated 3*L*L*L x 4 array in contiguous memory
     //which means the whole thing can easily be copied to the GPU
     //(3*L*L*L faces/edges x 4 edges/faces per face)

@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/work/NemotoU/tom/flip_gpu/src/code.h
+stdexcept
+-
+
+/work/NemotoU/tom/flip_gpu/src/decode.cu
+decode.cuh
+/work/NemotoU/tom/flip_gpu/src/decode.cuh
+
+/work/NemotoU/tom/flip_gpu/src/decode.cuh
+curand.h
+-
+curand_kernel.h
+-
+code.h
+/work/NemotoU/tom/flip_gpu/src/code.h
+
