@@ -2,39 +2,41 @@
 #define CODE_H
 
 #include<stdexcept>
-
-struct coord
-{
-    int xi[3];
-};
-
-enum direction { x, y, z, };
+#include<fstream>
+#include<string>
+#include<vector>
 
 //Basically just a neat container for some data
 class Code
 {
-    private: 
-        int coordToIndex(coord c);
-        coord indexToCoord(int i);
-        int neigh(int v, int dir, int sign);
-        int edgeIndex(int v, int dir, int sign);
-        void buildFaceToEdges();
-        void buildEdgeToFaces();
-        void buildQubitLookup();
-        void buildStabLookup();
-        void buildLogicalLookup();
-        
     public:
-        int L;
-        char bounds;
+        //params
+        int N;
+        int M_X;
+        int M_Z;
+        int maxBitDegreeX;
+        int maxBitDegreeZ;
+        int maxCheckDegreeX;
+        int maxCheckDegreeZ;
+        
+        //data vector setup functions
+        //these are only public so that they can be accessed in unit tests
+        //apart from that they are not used outside of object construction
+        void readParityCheckMatrix(std::string hFile, std::vector<std::vector<int>> &H);
+        void findMaxBitDegree(std::vector<std::vector<int>> &H, int &maxBitDegree);
+        void findMaxCheckDegree(std::vector<std::vector<int>> &mat, int &maxCheckDegree);
+        void buildBitToChecks(int M, int** bitToChecks, int maxBitDegree, std::vector<std::vector<int>> &H);
+        void buildCheckToBits(int M, int** checkToBits, int maxCheckDegree, std::vector<std::vector<int>> &H);
 
-        int** faceToEdges;      //cuda does not like copying to or from vectors etc 
-        int** edgeToFaces;      //so these need to be set up like this
-        int* qubitInclusionLookup;   //(the vectors above do not get used by the gpu)
-        int* stabInclusionLookup;
-        int* logicalInclusionLookup; 
+        //data arrays
+        std::vector<std::vector<int>> H_X = {};
+        std::vector<std::vector<int>> H_Z = {};
+        int** bitToXChecks;
+        int** bitToZChecks;
+        int** xCheckToBits;
+        int** zCheckToBits;
 
-        Code(int lIn, char boundsIn);
+        Code(std::string codename);
         ~Code();
 };
 

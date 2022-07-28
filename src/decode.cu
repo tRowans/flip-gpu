@@ -1,3 +1,4 @@
+#include "code.h"
 #include "decode.cuh"
 
 __global__
@@ -12,116 +13,145 @@ void createStates(int N, unsigned int seed, curandState_t* states)
 }
 
 __global__
-void wipeArrays(int N, int* qubits, int* syndrome)
+void wipeArray(int N, int* array) 
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per array element
     //Don't need lookups here either
-    if (threadID < N)
-    {
-        qubits[threadID] = 0;
-        syndrome[threadID] = 0;
-    } 
+    if (threadID < N) array[threadID] = 0;
 }
 
 //This works for qubit or syndrome errors
 //errorTarget is either qubits or syndrome
 //errorProb is p or q
 __global__
-void applyErrors(int* lookup, curandState_t* states, int* errorTarget, float errorProb)
+void arrayErrors(int maxIndex, curandState_t* states, int* errorTarget, float errorProb)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per errorTarget element
-    if (lookup[threadID] == 1)
+    if (threadID < maxIndex)
+    {
+        if (curand_uniform(&states[threadID]) < errorProb) 
+        {
+            errorTarget[threadID] = errorTarget[threadID] ^ 1;
+        }
+    }
+}
+
+__global__
+void depolErrors(int N, curandState_t* states, int* qubitsX, int* qubitsZ, float errorProb)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x;
+    if (threadID < N)
     {
         if (curand_uniform(&states[threadID]) < errorProb)
         {
-            errorTarget[threadID] = (errorTarget[threadID] + 1) % 2;
+            double x = curand_uniform(&states[threadID]);
+            if (x < 1/3) qubitsX[threadID] = qubitsX[threadID] ^ 1;
+            else if (1/3 <= x && x < 2/3) qubitsZ[threadID] = qubitsZ[threadID] ^ 1;
+            else if (2/3 <= x)
+            {
+                qubitsX[threadID] = qubitsX[threadID] ^ 1;
+                qubitsZ[threadID] = qubitsZ[threadID] ^ 1;
+            }
         }
     }
 }
 
 //Regular deterministic flip
 __global__
-void flip(int* lookup , int* qubits, int* syndrome, int* faceToEdges)
+void flip(int N, int M, int* qubits, int* syndrome, int* bitToChecks, int maxBitDegree)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (lookup[threadID] == 1)
+    if (threadID < N)
     {
-        int n = 0;
-        for (int i=0; i<4; i++)
+        int totalChecks = 0;
+        int unsatChecks = 0;
+        for (int i=0; i<maxBitDegree; ++i)
         {
-            //faceToEdges is a flat array on the gpu
-            if (syndrome[faceToEdges[4*threadID+i]] == 1) n++;
+            int stab = bitToChecks[maxBitDegree*threadID+i];
+            if (stab != -1)
+            {
+                totalChecks++;
+                if (syndrome[stab] == 1) unsatChecks++;
+            }
         }
-        if (n > 2) qubits[threadID] = (qubits[threadID] + 1) % 2;
+        if (unsatChecks > totalChecks/2)
+        {
+            qubits[threadID] = qubits[threadID] ^ 1;
+            for (int i=0; i<maxBitDegree; ++i)
+            {
+                int stab = bitToChecks[maxBitDegree*threadID+i];
+                if (stab != -1 && stab < M)
+                {
+                    atomicXor(&syndrome[stab],1);
+                }
+            }
+        }
     }
 }
 
 //Probabilistic flip
 __global__
-void pflip(int* lookup, int* qubits, int* syndrome, int* faceToEdges, curandState_t* states)
+void pflip(int N, int M, curandState_t* states, int* qubits, int* syndrome, int* bitToChecks, int maxBitDegree)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (lookup[threadID] == 1)
+    if (threadID < N)
     {
-        int n = 0;
-        for (int i=0; i<4; i++)
+        int totalChecks = 0;
+        int unsatChecks = 0;
+        for (int i=0; i<maxBitDegree; ++i)
         {
-            if (syndrome[faceToEdges[4*threadID+i]] == 1) n++;
+            int stab = bitToChecks[maxBitDegree*threadID+i];
+            if (stab != -1)
+            {
+                totalChecks++;
+                if (syndrome[stab] == 1) unsatChecks++;
+            }
         }
-        if (n > 2) qubits[threadID] = (qubits[threadID] + 1) % 2;
-        if (n == 2) 
+        if (unsatChecks > totalChecks/2)
+        {
+            qubits[threadID] = qubits[threadID] ^ 1;
+            for (int i=0; i<maxBitDegree; ++i)
+            {
+                int stab = bitToChecks[maxBitDegree*threadID+i];
+                if (stab != -1 && stab < M)
+                {
+                    atomicXor(&syndrome[stab],1);
+                }
+            }
+        }
+        else if (static_cast<float>(unsatChecks) == static_cast<float>(totalChecks)/2)
         {
             if (curand_uniform(&states[threadID]) < 0.5)
             {
-                qubits[threadID] = (qubits[threadID] + 1) % 2;
+                qubits[threadID] = qubits[threadID] ^ 1;
+                for (int i=0; i<maxBitDegree; ++i)
+                {
+                    int stab = bitToChecks[maxBitDegree*threadID + i];
+                    if (stab != -1 && stab < M)
+                    {
+                        atomicXor(&syndrome[stab],1);
+                    }
+                }
             }
         }
     }
 }
 
 __global__
-void updateSyndrome(int* lookup , int* qubits, int* syndrome, int* edgeToFaces)
+void calculateSyndrome(int M,  int* qubits, int* syndrome, int* checkToBits, int maxCheckDegree)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per stabiliser
-    if (lookup[threadID] == 1)
+    if (threadID < M)
     {
         int parity = 0;
-        for (int i=0; i<4; i++)
+        for (int i=0; i<maxCheckDegree; ++i)
         {
-            if (qubits[edgeToFaces[4*threadID+i]] == 1) parity = (parity + 1) % 2;
-        }
-        syndrome[threadID] = parity;
-    }
-}
-
-__global__
-void measureLogicals(int* lookup, int* qubits, int* nOdd, int L, char bounds)
-{
-    //Just check the reps that run in the Z direction
-    //Code and error model are symmetric along all axis
-    //so expect performance for other two logical qubits is the same
-    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per logical op rep
-    if (lookup[threadID] == 1)
-    {
-        int qubit = threadID;
-        int parity = qubits[qubit];
-        //Don't need to check bounds is 'o' or 'c' only here because it was checked earlier
-        if (bounds == 'o')
-        {
-            for (int i=0; i<L-3; ++i)
+            int bit = checkToBits[maxCheckDegree*threadID + i]; 
+            if (bit != -1)
             {
-                qubit += 3*L*L;
-                parity = (parity + qubits[qubit]) % 2;
+                if (qubits[bit] == 1) parity = parity ^ 1;
             }
+            syndrome[threadID] = parity;
         }
-        else
-        {
-            for (int i=0; i<L; ++i)
-            { 
-                qubit += 3*L*L;
-                parity = (parity + qubits[qubit]) % 2;
-            }
-        }
-        atomicAdd(nOdd, parity);
     }
 }
