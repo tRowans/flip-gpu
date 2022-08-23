@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+from scipy.optimize import curve_fit
 
 def read_data_file(filename):
     data = [[],[],[]]
@@ -35,15 +36,45 @@ def consolidate_data(data):
         newdata[2].append(error_bar)
     return newdata
 
-data14 = consolidate_data(read_data_file("2022-07-01/data14.csv"))
-data18 = consolidate_data(read_data_file("2022-07-01/data18.csv"))
-data24 = consolidate_data(read_data_file("2022-07-01/data24.csv"))
-data32 = consolidate_data(read_data_file("2022-07-01/data32.csv"))
+def x(L):
+    return lambda p, pth, v : (p-pth)*(L**(1/v))
 
-plt.errorbar(data14[0], data14[1], yerr=data14[2], label="L=14", linestyle='', marker='o')
-plt.errorbar(data18[0], data18[1], yerr=data18[2], label="L=18", linestyle='', marker='^')
-plt.errorbar(data24[0], data24[1], yerr=data24[2], label="L=24", linestyle='', marker='v')
-plt.errorbar(data32[0], data32[1], yerr=data32[2], label="L=32", linestyle='', marker='s')
+def ansatz(x,a0,a1,a2):
+    return a0 + a1*x + a2*(x**2)
+
+def func(p,pth,v,a0,a1,a2):
+    perL = len(p)//4
+    xs = [x(L) for L in [14,18,24,32]]
+    xdata = []
+    for i in range(len(p)):
+        xdata.append(xs[i//perL](p[i],pth,v))
+    xdata = np.array(xdata)
+    return ansatz(xdata,a0,a1,a2)
+
+#process data
+data14 = np.array(consolidate_data(read_data_file("2022-08-22/data14.csv")))
+data18 = np.array(consolidate_data(read_data_file("2022-08-22/data18.csv")))
+data24 = np.array(consolidate_data(read_data_file("2022-08-22/data24.csv")))
+data32 = np.array(consolidate_data(read_data_file("2022-08-22/data32.csv")))
+
+#normal plotting
+plt.errorbar(data14[0], data14[1], yerr=data14[2], label="L=14", linestyle='', marker='o', color='blue')
+plt.errorbar(data18[0], data18[1], yerr=data18[2], label="L=18", linestyle='', marker='^', color='orange')
+plt.errorbar(data24[0], data24[1], yerr=data24[2], label="L=24", linestyle='', marker='v', color='green')
+plt.errorbar(data32[0], data32[1], yerr=data32[2], label="L=32", linestyle='', marker='s', color='red')
 plt.semilogy()
 plt.legend()
 plt.show()
+
+#fitting to ansatz
+data = np.hstack((data14,data18,data24,data32))
+popt, pcov = curve_fit(func, data[0], data[1], sigma=data[2], p0=[0.0445,1,1,1,1])
+
+plt.plot(x(14)(data14[0], popt[0], popt[1]),data14[1], label="L=14", linestyle='', marker='o')
+plt.plot(x(18)(data18[0], popt[0], popt[1]),data18[1], label="L=18", linestyle='', marker='^')
+plt.plot(x(24)(data24[0], popt[0], popt[1]),data24[1], label="L=24", linestyle='', marker='v')
+plt.plot(x(32)(data32[0], popt[0], popt[1]),data32[1], label="L=32", linestyle='', marker='s')
+plt.show()
+
+print(popt[0])
+print(np.sqrt(pcov[0][0]))
