@@ -52,10 +52,10 @@ def func(p,pth,v,a0,a1,a2):
     return ansatz(xdata,a0,a1,a2)
 
 #process data
-data14 = np.array(consolidate_data(read_data_file("2022-08-29_5-2/data14.csv")))
-data18 = np.array(consolidate_data(read_data_file("2022-08-29_5-2/data18.csv")))
-data24 = np.array(consolidate_data(read_data_file("2022-08-29_5-2/data24.csv")))
-data32 = np.array(consolidate_data(read_data_file("2022-08-29_5-2/data32.csv")))
+data14 = np.array(consolidate_data(read_data_file("2022-08-30_5-2/data14.csv")))
+data18 = np.array(consolidate_data(read_data_file("2022-08-30_5-2/data18.csv")))
+data24 = np.array(consolidate_data(read_data_file("2022-08-30_5-2/data24.csv")))
+data32 = np.array(consolidate_data(read_data_file("2022-08-30_5-2/data32.csv")))
 
 #normal plotting
 plt.errorbar(data14[0], data14[1], yerr=data14[2], label="L=14", linestyle='', marker='o', color='blue')
@@ -68,7 +68,7 @@ plt.show()
 
 #fitting to ansatz
 data = np.hstack((data14,data18,data24,data32))
-popt, pcov = curve_fit(func, data[0], data[1], sigma=data[2], p0=[0.036,1,1,1,1])
+popt, pcov = curve_fit(func, data[0], data[1], sigma=data[2], p0=[0.04,1,1,1,1])
 
 plt.plot(x(14)(data14[0], popt[0], popt[1]),data14[1], label="L=14", linestyle='', marker='o')
 plt.plot(x(18)(data18[0], popt[0], popt[1]),data18[1], label="L=18", linestyle='', marker='^')
