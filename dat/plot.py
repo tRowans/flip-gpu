@@ -52,10 +52,10 @@ def func(p,pth,v,a0,a1,a2):
     return ansatz(xdata,a0,a1,a2)
 
 #process data
-data14 = np.array(consolidate_data(read_data_file("2022-08-30_5-2/data14.csv")))
-data18 = np.array(consolidate_data(read_data_file("2022-08-30_5-2/data18.csv")))
-data24 = np.array(consolidate_data(read_data_file("2022-08-30_5-2/data24.csv")))
-data32 = np.array(consolidate_data(read_data_file("2022-08-30_5-2/data32.csv")))
+data14 = np.array(consolidate_data(read_data_file("2022-09-01_3-4/data14.csv")))
+data18 = np.array(consolidate_data(read_data_file("2022-09-01_3-4/data18.csv")))
+data24 = np.array(consolidate_data(read_data_file("2022-09-01_3-4/data24.csv")))
+data32 = np.array(consolidate_data(read_data_file("2022-09-01_3-4/data32.csv")))
 
 #normal plotting
 plt.errorbar(data14[0], data14[1], yerr=data14[2], label="L=14", linestyle='', marker='o', color='blue')
