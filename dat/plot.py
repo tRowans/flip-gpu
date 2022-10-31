@@ -13,6 +13,13 @@ def read_data_file(filename):
             data[2].append(int(line[-1]))   #number of logical errors
     return data
 
+def write_data_file(filename, data, trunc_lower, trunc_upper):
+    with open("{}".format(filename), 'w') as f:
+        f.write("p,pfail,err\n")
+        for i in range(len(data[0])):
+            if i >= trunc_lower and i < trunc_upper:
+                f.write("{},{},{}\n".format(data[0][i],data[1][i],data[2][i]))
+
 def agresti_coull(f,n):
     f = f + 2
     n = n + 4
@@ -22,6 +29,7 @@ def agresti_coull(f,n):
 
 def consolidate_data(data):
     xvals = {i for i in data[0]}
+    xvals = sorted(xvals)
     newdata = [[],[],[]]
     for i in xvals:
         newdata[0].append(i)
@@ -51,19 +59,44 @@ def func(p,pth,v,a0,a1,a2):
     xdata = np.array(xdata)
     return ansatz(xdata,a0,a1,a2)
 
+dataset = "2022-10-27_1-2_o/"
+
 #process data
-data14 = np.array(consolidate_data(read_data_file("2022-09-07_7-4/data14.csv")))
-data18 = np.array(consolidate_data(read_data_file("2022-09-07_7-4/data18.csv")))
-data24 = np.array(consolidate_data(read_data_file("2022-09-07_7-4/data24.csv")))
-data32 = np.array(consolidate_data(read_data_file("2022-09-07_7-4/data32.csv")))
+data14 = np.array(consolidate_data(read_data_file(dataset+"data14.csv")))
+data18 = np.array(consolidate_data(read_data_file(dataset+"data18.csv")))
+data24 = np.array(consolidate_data(read_data_file(dataset+"data24.csv")))
+data32 = np.array(consolidate_data(read_data_file(dataset+"data32.csv")))
+
+trunc_upper = len(data14[0])
+trunc_lower = 0
+
+#save processed data
+write_data_file(dataset+"processed14.csv",data14,trunc_lower,trunc_upper)
+write_data_file(dataset+"processed18.csv",data18,trunc_lower,trunc_upper)
+write_data_file(dataset+"processed24.csv",data24,trunc_lower,trunc_upper)
+write_data_file(dataset+"processed32.csv",data32,trunc_lower,trunc_upper)
 
 #normal plotting
-plt.errorbar(data14[0], data14[1], yerr=data14[2], label="L=14", linestyle='', marker='o', color='blue')
-plt.errorbar(data18[0], data18[1], yerr=data18[2], label="L=18", linestyle='', marker='^', color='orange')
-plt.errorbar(data24[0], data24[1], yerr=data24[2], label="L=24", linestyle='', marker='v', color='green')
-plt.errorbar(data32[0], data32[1], yerr=data32[2], label="L=32", linestyle='', marker='s', color='red')
+plt.errorbar(data14[0][trunc_lower:trunc_upper], 
+             data14[1][trunc_lower:trunc_upper], 
+             yerr=data14[2][trunc_lower:trunc_upper], 
+             label="L=14", linestyle='', marker='o', color='blue')
+plt.errorbar(data18[0][trunc_lower:trunc_upper], 
+             data18[1][trunc_lower:trunc_upper], 
+             yerr=data18[2][trunc_lower:trunc_upper], 
+             label="L=18", linestyle='', marker='^', color='orange')
+plt.errorbar(data24[0][trunc_lower:trunc_upper], 
+             data24[1][trunc_lower:trunc_upper], 
+             yerr=data24[2][trunc_lower:trunc_upper],
+             label="L=24", linestyle='', marker='v', color='green')
+plt.errorbar(data32[0][trunc_lower:trunc_upper], 
+             data32[1][trunc_lower:trunc_upper],
+             yerr=data32[2][trunc_lower:trunc_upper],
+             label="L=32", linestyle='', marker='s', color='red')
 plt.semilogy()
 plt.legend()
+plt.xlabel(r'$p ~~ (=q)$')
+plt.ylabel(r'$p_{fail}$')
 plt.show()
 
 #fitting to ansatz
