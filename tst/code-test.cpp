@@ -7,29 +7,29 @@
 TEST(coordToIndexTest, HandlesExpectedInput)
 {
     coord c = {4,4,1};
-    EXPECT_EQ(coordToIndex(c, 6), 64);
+    EXPECT_EQ(testCodeC.coordToIndex(c), 64);
 } 
 TEST(coordToIndexTest, HandlesOutOfRangeInput)
 {
     coord c = {-1,0,0};
-    EXPECT_THROW(coordToIndex(c, 6), std::invalid_argument);
+    EXPECT_THROW(testCodeC.coordToIndex(c), std::invalid_argument);
     c.xi[0] = 6;
-    EXPECT_THROW(coordToIndex(c, 6), std::invalid_argument);
+    EXPECT_THROW(testCodeC.coordToIndex(c), std::invalid_argument);
 }
 
 //------------------------------------------------------------
 
 TEST(indexToCoordTest, HandlesExpectedInput)
 {
-    coord c = indexToCoord(64, 6);
+    coord c = testCodeC.indexToCoord(64);
     EXPECT_EQ(c.xi[0], 4);
     EXPECT_EQ(c.xi[1], 4);
     EXPECT_EQ(c.xi[2], 1);
 }
 TEST(indexToCoordTest, HandlesOutOfRangeInput)
 {
-    EXPECT_THROW(indexToCoord(-1, 6), std::invalid_argument);
-    EXPECT_THROW(indexToCoord(216, 6), std::invalid_argument);
+    EXPECT_THROW(testCodeC.indexToCoord(-1), std::invalid_argument);
+    EXPECT_THROW(testCodeC.indexToCoord(216), std::invalid_argument);
 }
 
 //------------------------------------------------------------
@@ -37,28 +37,28 @@ TEST(indexToCoordTest, HandlesOutOfRangeInput)
 TEST(neighTest, CorrectOutput)
 {
     //129 = {3,3,3}
-    EXPECT_EQ(neigh(129, 0, 1, 6), 130);
-    EXPECT_EQ(neigh(129, 1, 1, 6), 135);
-    EXPECT_EQ(neigh(129, 2, 1, 6), 165);
-    EXPECT_EQ(neigh(129, 0, -1, 6), 128);
-    EXPECT_EQ(neigh(129, 1, -1, 6), 123);
-    EXPECT_EQ(neigh(129, 2, -1, 6), 93);
+    EXPECT_EQ(testCodeC.neigh(129, 0, 1), 130);
+    EXPECT_EQ(testCodeC.neigh(129, 1, 1), 135);
+    EXPECT_EQ(testCodeC.neigh(129, 2, 1), 165);
+    EXPECT_EQ(testCodeC.neigh(129, 0, -1), 128);
+    EXPECT_EQ(testCodeC.neigh(129, 1, -1), 123);
+    EXPECT_EQ(testCodeC.neigh(129, 2, -1), 93);
 }
 
 //------------------------------------------------------------
 
 TEST(edgeIndexTest, HandlesExpectedInput)
 {
-    EXPECT_EQ(edgeIndex(129, 0, 1, 6), 387);
-    EXPECT_EQ(edgeIndex(129, 1, 1, 6), 388);
-    EXPECT_EQ(edgeIndex(129, 2, 1, 6), 389);
-    EXPECT_EQ(edgeIndex(129, 0, -1, 6), 384);
-    EXPECT_EQ(edgeIndex(129, 1, -1, 6), 370);
-    EXPECT_EQ(edgeIndex(129, 2, -1, 6), 281);
+    EXPECT_EQ(testCodeC.edgeIndex(129, 0, 1), 387);
+    EXPECT_EQ(testCodeC.edgeIndex(129, 1, 1), 388);
+    EXPECT_EQ(testCodeC.edgeIndex(129, 2, 1), 389);
+    EXPECT_EQ(testCodeC.edgeIndex(129, 0, -1), 384);
+    EXPECT_EQ(testCodeC.edgeIndex(129, 1, -1), 370);
+    EXPECT_EQ(testCodeC.edgeIndex(129, 2, -1), 281);
 }
 TEST(edgeIndexTest, HandlesInvalidInput)
 {
-    EXPECT_THROW(edgeIndex(0, 3, 1, 5), std::invalid_argument);
+    EXPECT_THROW(testCodeC.edgeIndex(0, 3, 1), std::invalid_argument);
 }
 
 //------------------------------------------------------------
@@ -68,136 +68,131 @@ TEST(buildFaceToEdgesTest, CorrectOutput)
     //Not worth checking the whole thing
     //Just check this for the three directions of face and check size is right
     //Same for other functions of this type
-    vvint faceToEdges; 
-    buildFaceToEdges(faceToEdges, 6);
-    vint edges1 = {387, 388, 391, 405};
-    vint edges2 = {387, 389, 392, 495};
-    vint edges3 = {388, 389, 407, 496};
-    EXPECT_EQ(faceToEdges[387], edges1);
-    EXPECT_EQ(faceToEdges[388], edges2);
-    EXPECT_EQ(faceToEdges[389], edges3);
-    EXPECT_EQ(faceToEdges.size(), 3*6*6*6);
-}
-
-//------------------------------------------------------------
-
-TEST(buildEdgeToFaces, CorrectOutput)
-{
-    vvint edgeToFaces;
-    buildEdgeToFaces(edgeToFaces, 6);
-    vint faces1 = {387, 388, 369, 280};
-    vint faces2 = {387, 389, 384, 281};
-    vint faces3 = {389, 388, 371, 385};
-    EXPECT_EQ(edgeToFaces[387], faces1);
-    EXPECT_EQ(edgeToFaces[388], faces2);
-    EXPECT_EQ(edgeToFaces[389], faces3); 
-    EXPECT_EQ(edgeToFaces.size(), 3*6*6*6); 
-}
-
-//------------------------------------------------------------
-
-TEST(buildVertexToEdgesTest, CorrectOutput)
-{
-    vvint vertexToEdges;
-    buildVertexToEdges(vertexToEdges, 6);
-    vint edges = {387, 388, 389, 384, 370, 281};
-    EXPECT_EQ(vertexToEdges[129], edges);
-    EXPECT_EQ(vertexToEdges.size(), 6*6*6);
-}
-
-//------------------------------------------------------------
-
-TEST(buildEdgeToVerticesTest, CorrectOutput)
-{
-    vpint edgeToVertices;
-    buildEdgeToVertices(edgeToVertices, 6);
-    std::pair<int,int> vertices1 = {129, 130};
-    std::pair<int,int> vertices2 = {129, 135};
-    std::pair<int,int> vertices3 = {129, 165};
-    EXPECT_EQ(edgeToVertices[387], vertices1);
-    EXPECT_EQ(edgeToVertices[388], vertices2);
-    EXPECT_EQ(edgeToVertices[389], vertices3);
-    EXPECT_EQ(edgeToVertices.size(), 3*6*6*6);
-}
-
-//------------------------------------------------------------
-
-TEST(buildFaceToVerticesTest, CorrectOutput)
-{
-    vvint faceToVertices;
-    buildFaceToVertices(faceToVertices, 6);
-    vint vertices1 = {129, 130, 135, 136};
-    vint vertices2 = {129, 130, 165, 166};
-    vint vertices3 = {129, 135, 165, 171};
-    EXPECT_EQ(faceToVertices[387], vertices1);
-    EXPECT_EQ(faceToVertices[388], vertices2);
-    EXPECT_EQ(faceToVertices[389], vertices3);
-    EXPECT_EQ(faceToVertices.size(), 3*6*6*6);
-}
-
-//------------------------------------------------------------
-
-TEST(buildXLogicalsTest, CorrectOutput)
-{
-    vvint zLogicals;
-    buildZLogicals(zLogicals, 3);
-    vvint zLogicalsExpected;
-    zLogicalsExpected.push_back({2,5,8});
-    zLogicalsExpected.push_back({11,14,17});
-    zLogicalsExpected.push_back({20,23,26});
-    zLogicalsExpected.push_back({29,32,35});
-    zLogicalsExpected.push_back({38,41,44});
-    zLogicalsExpected.push_back({47,50,53});
-    zLogicalsExpected.push_back({56,59,62});
-    zLogicalsExpected.push_back({65,68,71});
-    zLogicalsExpected.push_back({74,77,80});
-    EXPECT_EQ(zLogicals, zLogicalsExpected);
-}
-
-//------------------------------------------------------------
-
-TEST(relaxEqualTest, ReduceSyndromeWeight)
-{
-    std::random_device rd{};
-    std::mt19937 engine{rd()};
-    std::uniform_real_distribution<double> dist(0,1);
-
-    buildLattice(latCubic);
-    latCubic.wipe();
-    latCubic.qubits[0] = 1;
-    latCubic.calcSynd();
-    relaxEqual(latCubic, 1, engine, dist);
-
-    vint qubitsExpected(3*6*6*6, 0);
-    EXPECT_EQ(latCubic.qubits, qubitsExpected);
-}
-TEST(relaxEqualTest, PreseveSyndromeWeight)
-{
-    std::random_device rd{};
-    std::mt19937 engine{rd()};
-    std::uniform_real_distribution<double> dist(0,1);
-
-    buildLattice(latCubic);
-    latCubic.wipe();
-    latCubic.qubits[2] = 1;
-    latCubic.qubits[20] = 1;
-    latCubic.qubits[110] = 1;
-    latCubic.qubits[128] = 1;
-    latCubic.calcSynd();
-
-    vint qubitsExpected(3*6*6*6, 0);
-    qubitsExpected[2] = 1;
-    qubitsExpected[20] = 1;
-    qubitsExpected[110] = 1;
-    qubitsExpected[128] = 1;
-
-    relaxEqual(latCubic, 1, engine, dist);
-    for (int i = 0; i < 3*6*6*6; i++)
+    int edges1[4] = {387, 388, 405, 391};
+    int edges2[4] = {389, 387, 392, 495};
+    int edges3[4] = {388, 389, 496, 407};
+    for (int i=0; i<4; ++i)
     {
-        if (i != 2 && i != 20 && i != 110 && i != 128)
-        {
-            EXPECT_EQ(latCubic.qubits[i], 0);
-        }
+        EXPECT_EQ(testCodeC.faceToEdges[387][i], edges1[i]);
+        EXPECT_EQ(testCodeC.faceToEdges[388][i], edges2[i]);
+        EXPECT_EQ(testCodeC.faceToEdges[389][i], edges3[i]);
     }
 }
 
+//------------------------------------------------------------
+
+TEST(buildEdgeToFacesTest, CorrectOutput)
+{
+    int faces1[4] = {387, 388, 369, 280};
+    int faces2[4] = {389, 387, 281, 384};
+    int faces3[4] = {388, 389, 385, 371};
+    for (int i=0; i<4; ++i)
+    {
+        EXPECT_EQ(testCodeC.edgeToFaces[387][i], faces1[i]);
+        EXPECT_EQ(testCodeC.edgeToFaces[388][i], faces2[i]);
+        EXPECT_EQ(testCodeC.edgeToFaces[389][i], faces3[i]); 
+    }
+}
+
+//------------------------------------------------------------
+
+TEST(buildQubitLookupTest, ClosedBoundaries)
+{
+    int* lookupExpected = new int[((3*6*6*6+255)/256)*256]();
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        lookupExpected[i] = 1;
+    }
+    for (int i=0; i<((3*6*6*6+255)/256)*256; ++i)
+    {
+        EXPECT_EQ(testCodeC.qubitInclusionLookup[i], lookupExpected[i]);
+    }
+    delete[] lookupExpected;
+}
+TEST(buildQubitLookupTest, OpenBoundaries)
+{
+    int* lookupExpected = new int[((3*6*6*6+255)/256)*256]();
+    int includedQubits[51] = {0,3,5,6,8,18,19,21,22,23,24,25,26,36,37,39,40,41,42,43,44,
+                              108,111,113,114,116,126,127,129,130,131,132,133,134,144,145,147,148,149,150,151,152,
+                              216,219,222,234,237,240,252,255,258};
+    for (int i=0; i<51; ++i)
+    {
+        lookupExpected[includedQubits[i]] = 1;
+    }
+    for (int i=0; i<((3*6*6*6+255)/256)*256; ++i)
+    {
+        EXPECT_EQ(testCodeO.qubitInclusionLookup[i], lookupExpected[i]);
+    }
+    delete[] lookupExpected;
+}
+
+//------------------------------------------------------------
+
+TEST(buildStabLookupTest, ClosedBoundaries)
+{
+    int* lookupExpected = new int[((3*6*6*6+255)/256)*256]();
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        lookupExpected[i] = 1;
+    }
+    for (int i=0; i<((3*6*6*6+255)/256)*256; ++i)
+    {
+        EXPECT_EQ(testCodeC.stabInclusionLookup[i], lookupExpected[i]);
+    }
+    delete[] lookupExpected;
+}
+TEST(buildStabLookupTest, OpenBoundaries)
+{
+    
+    int* lookupExpected = new int[((3*6*6*6+255)/256)*256]();
+    int includedStabs[44] = {4,7,18,21,22,23,24,25,26,36,39,40,41,42,43,44,
+                             112,115,126,129,130,131,132,133,134,144,147,148,149,150,151,152,
+                             220,223,234,237,238,240,241,252,255,256,258,259};
+    for (int i=0; i<44; ++i)
+    {
+        lookupExpected[includedStabs[i]] = 1;
+    }
+    for (int i=0; i<((3*6*6*6+255)/256)*256; ++i)
+    {
+        EXPECT_EQ(testCodeO.stabInclusionLookup[i], lookupExpected[i]);
+    }
+    delete[] lookupExpected;
+}
+
+//------------------------------------------------------------
+
+TEST(buildLogicalLookupTest, ClosedBoundaries)
+{
+    int* lookupExpected = new int[((3*6*6+63)/64)*64]();
+    int includedLogicals[36] = {0,3,6,9,12,15,
+                               18,21,24,27,30,33,
+                               36,39,42,45,48,51,
+                               54,57,60,63,66,69,
+                               72,75,78,81,84,87,
+                               90,93,96,99,102,105};
+    for (int i=0; i<36; ++i)
+    {
+        lookupExpected[includedLogicals[i]] = 1;
+    }
+    for (int i=0; i<((3*6*6+63)/64)*64; ++i)
+    {
+        EXPECT_EQ(testCodeC.logicalInclusionLookup[i], lookupExpected[i]);
+    }
+    delete[] lookupExpected;
+}
+TEST(buildLogicalLookupTest, OpenBoundaries)
+{
+    int* lookupExpected = new int[((3*6*6+63)/64)*64]();
+    int includedLogicals[9] = {0,3,6,
+                               18,21,24,
+                               36,39,42};
+    for (int i=0; i<9; ++i)
+    {
+        lookupExpected[includedLogicals[i]] = 1;
+    }
+    for (int i=0; i<((3*6*6+63)/64)*64; ++i)
+    {
+        EXPECT_EQ(testCodeO.logicalInclusionLookup[i], lookupExpected[i]);
+    }
+    delete[] lookupExpected;
+}

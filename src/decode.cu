@@ -1,3 +1,4 @@
+#include "code.h"
 #include "decode.cuh"
 
 __global__
@@ -12,15 +13,11 @@ void createStates(int N, unsigned int seed, curandState_t* states)
 }
 
 __global__
-void wipeArrays(int N, int* qubits, int* syndrome)
+void wipeArray(int N, int* array) 
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per array element
     //Don't need lookups here either
-    if (threadID < N)
-    {
-        qubits[threadID] = 0;
-        syndrome[threadID] = 0;
-    } 
+    if (threadID < N) array[threadID] = 0;
 }
 
 //This works for qubit or syndrome errors
@@ -32,55 +29,99 @@ void applyErrors(int* lookup, curandState_t* states, int* errorTarget, float err
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per errorTarget element
     if (lookup[threadID] == 1)
     {
-        if (curand_uniform(&states[threadID]) < errorProb)
+        if (curand_uniform(&states[threadID]) < errorProb) 
         {
-            errorTarget[threadID] = (errorTarget[threadID] + 1) % 2;
+            errorTarget[threadID] = errorTarget[threadID] ^ 1;
         }
     }
 }
 
 //Regular deterministic flip
 __global__
-void flip(int* lookup , int* qubits, int* syndrome, int* faceToEdges)
+void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (lookup[threadID] == 1)
+    if (qLookup[threadID] == 1)
     {
         int n = 0;
-        for (int i=0; i<4; i++)
+        for (int i=0; i<4; ++i)
         {
             //faceToEdges is a flat array on the gpu
             if (syndrome[faceToEdges[4*threadID+i]] == 1) n++;
         }
-        if (n > 2) qubits[threadID] = (qubits[threadID] + 1) % 2;
+        if (n > 2)
+        {
+            qubits[threadID] = qubits[threadID] ^ 1;
+            for (int i=0; i<4; ++i)
+            {
+                int stab = faceToEdges[4*threadID+i];
+                if (sLookup[stab] == 1) atomicXor(&syndrome[stab],1);
+            }
+        }
     }
 }
 
 //Probabilistic flip
 __global__
-void pflip(int* lookup, int* qubits, int* syndrome, int* faceToEdges, curandState_t* states)
+void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges, curandState_t* states)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (lookup[threadID] == 1)
+    if (qLookup[threadID] == 1)
     {
         int n = 0;
         for (int i=0; i<4; i++)
         {
             if (syndrome[faceToEdges[4*threadID+i]] == 1) n++;
         }
-        if (n > 2) qubits[threadID] = (qubits[threadID] + 1) % 2;
-        if (n == 2) 
+        if (n > 2) 
+        {
+            qubits[threadID] = qubits[threadID] ^ 1;
+            for (int i=0; i<4; ++i)
+            {
+                int stab = faceToEdges[4*threadID+i];
+                if (sLookup[stab] == 1) atomicXor(&syndrome[stab],1);
+            }
+        }
+        else if (n == 2) 
         {
             if (curand_uniform(&states[threadID]) < 0.5)
             {
-                qubits[threadID] = (qubits[threadID] + 1) % 2;
+                qubits[threadID] = qubits[threadID] ^ 1;
+                for (int i=0; i<4; ++i)
+                {
+                    int stab = faceToEdges[4*threadID+i];
+                    if (sLookup[stab] == 1) atomicXor(&syndrome[stab],1);
+                }
+            }
+        }
+    }
+}
+
+//Mess up edges
+__global__
+void edgeFlip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* edgeToFaces, int* faceToEdges, curandState_t* states)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per stabiliser
+    if (sLookup[threadID] == 1 && syndrome[threadID] == 1 && curand_uniform(&states[threadID]) < 0.25)
+    {
+        for (int i=0; i<4; ++i)
+        {
+            int qubit = edgeToFaces[4*threadID+i];
+            if (qLookup[qubit] == 1)
+            {
+                atomicXor(&qubits[qubit],1);
+                for (int j=0; j<4; ++j)
+                {
+                    int stab = faceToEdges[4*qubit+j];
+                    if (sLookup[stab] == 1) atomicXor(&syndrome[stab],1);
+                }
             }
         }
     }
 }
 
 __global__
-void updateSyndrome(int* lookup , int* qubits, int* syndrome, int* edgeToFaces)
+void calculateSyndrome(int* lookup, int* qubits, int* syndrome, int* edgeToFaces)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per stabiliser
     if (lookup[threadID] == 1)
@@ -88,7 +129,7 @@ void updateSyndrome(int* lookup , int* qubits, int* syndrome, int* edgeToFaces)
         int parity = 0;
         for (int i=0; i<4; i++)
         {
-            if (qubits[edgeToFaces[4*threadID+i]] == 1) parity = (parity + 1) % 2;
+            if (qubits[edgeToFaces[4*threadID+i]] == 1) parity = parity ^ 1;
         }
         syndrome[threadID] = parity;
     }

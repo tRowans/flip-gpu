@@ -1,26 +1,41 @@
 #include<random>
 #include<iostream>
+#include "code.h"
 #include "decode.cuh"
 
 int main(int argc, char *argv[])
 {
-    if (argc != 9)
+    if (argc != 11)
     {
         std::cout << "Invalid number of arguments." << '\n';
         return 1;
     }
 
-    int L = std::atoi(argv[1]);         //Lattice size
-    double p = std::atof(argv[2]);      //qubit error prob
-    double q = std::atof(argv[3]);      //meas error prob
-    int runs = std::atoi(argv[4]);      //sim repeats
-    int cycles = std::atoi(argv[5]);    //code cycles per sim
-    int apps = std::atoi(argv[6]);      //applications of flip per code cycle
-    int pfreq = std::atoi(argv[7]);     //apply pFlip instead of flip every pfreq applications
-    char bounds = std::atoi(argv[8]);   //open ('o') or closed ('c') boundary conditions
+    int L = std::atoi(argv[1]);          //lattice size
+    double pLower = std::atof(argv[2]);  //lower value for error probability p
+    double pUpper = std::atof(argv[3]);  //upper value for p
+    int nps = std::atoi(argv[4]);     //number of values for p in range pLower <= p <= pUpper
+    double alpha = std::atof(argv[5]);   //measurement error probability q = alpha*p
+    int runs = std::atoi(argv[6]);       //number of repeats of simulation
+    int cycles = std::atoi(argv[7]);     //code cycles per simulation
+    int apps = std::atoi(argv[8]);       //applications of decoding rule per code cycle
+    int pfreq = std::atoi(argv[9]);      //apply pFlip instead of flip every pfreq applications
+    char bounds = *argv[10];             //open ('o') or closed ('c') boundary conditions
 
     int N = 3*L*L*L; //number of lattice faces/edges (= number of qubits/edges if there are no boundaries)
-   
+
+    double pRange = pUpper - pLower;
+    double pStep;
+    if (nps == 1) pStep = 0;
+    else pStep = pRange/(nps-1);
+    double ps[nps];
+    double qs[nps];
+    for (int i=0; i<nps; ++i)
+    {
+        ps[i] = pLower + i*pStep;
+        qs[i] = alpha*ps[i];
+    }
+      
     //build code info 
     Code code(L, bounds);
 
@@ -50,44 +65,69 @@ int main(int argc, char *argv[])
     cudaMemcpy(d_stabInclusionLookup, code.stabInclusionLookup,
                 ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
     
-    cudaMalloc(&d_logicalInclusionLookup, ((N+255)/256)*256*sizeof(int));
+    cudaMalloc(&d_logicalInclusionLookup, ((3*L*L+63)/64)*64*sizeof(int));
     cudaMemcpy(d_logicalInclusionLookup, code.logicalInclusionLookup,
-                ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
+                ((3*L*L+63)/64)*64*sizeof(int), cudaMemcpyHostToDevice);
         
-    int failures = 0;       //count for total logical errors
-    int* nOdd = 0;          //count for number of -1 logicals in majority vote
+    int failures[nps] = {};                 //count for total logical errors per value of p
+    int* nOdd;                              //count for number of -1 logicals in majority vote
     cudaMallocManaged(&nOdd, sizeof(int));  //can be accessed by cpu or gpu
 
     //setup state array for device-side random number generation
     std::random_device rd{};
     curandState_t *d_states;
+    cudaMalloc(&d_states, N*sizeof(curandState_t));
     createStates<<<(N+255)/256,256>>>(N, rd(), d_states);
-    
-    for (int run=0; run<runs; ++run)
-    {
-        //set qubits and syndrome to all zeros 
-        wipeArrays<<<(N+255)/256,256>>>(N, d_qubits, d_syndrome);
+    cudaDeviceSynchronize();
 
-        for (int cycle=0; cycle<cycles; ++cycle)
+    for (int i=0; i<nps; ++i)
+    {
+        for (int run=0; run<runs; ++run)
         {
-            applyErrors<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_states, d_qubits, p);                   //qubit errors
-            updateSyndrome<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_qubits, d_syndrome, d_edgeToFaces);   //syndrome measurement
-            applyErrors<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_states, d_syndrome, q);                  //measurement errors
-            for (int app=1; app<apps+1; ++app)  //start on 1 instead of 0 so app % pfreq != 0 on the first loop (unless pfreq=1)
+            //set qubits and syndrome to all zeros 
+            wipeArray<<<(N+255)/256,256>>>(N, d_qubits);
+            cudaDeviceSynchronize();
+        
+            for (int cycle=1; cycle<cycles+1; ++cycle) //starts on 1 instead of 0 so cycle % pfreq != 0 on the first loop
             {
-                //use pflip every pfreq applications, otherwise use regular flip
-                if (app % pfreq == 0) pflip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, 
-                                                                    d_syndrome, d_faceToEdges, d_states);
-                else flip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, d_syndrome, d_faceToEdges);
+                applyErrors<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_states, d_qubits, ps[i]);                   //qubit errors
+                cudaDeviceSynchronize();
+                calculateSyndrome<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_qubits, d_syndrome, d_edgeToFaces);    //measure stabilisers
+                cudaDeviceSynchronize();
+                applyErrors<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_states, d_syndrome, qs[i]);                  //measurement errors
+                cudaDeviceSynchronize();
+                        
+                for (int app=1; app<apps+1; ++app)  //start on 1 instead of 0 so app % pfreq != 0 on the first loop (unless pfreq=1)
+                {
+                    //use pflip every pfreq applications, otherwise use regular flip
+                    if (app % pfreq == 0) pflip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
+                                                                           d_qubits, d_syndrome, d_faceToEdges, d_states);
+                    else flip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
+                                                          d_qubits, d_syndrome, d_faceToEdges);
+                    cudaDeviceSynchronize();
+                }
             }
+
+            *nOdd = 0;
+            //measure parity of all disjoint logical Z reps
+            measureLogicals<<<(3*L*L+63)/64,64>>>(d_logicalInclusionLookup, d_qubits, nOdd, L, bounds);  
+            cudaDeviceSynchronize();
+            int nZReps = 0;
+            for (int j=0; j<((3*L*L+63)/64)*64; ++j) nZReps += code.logicalInclusionLookup[j];
+            if (*nOdd >= nZReps/2) failures[i] += 1;  //majority vote (L*L = number of disjoint logical Z reps)
         }
 
-        *nOdd = 0;
-        //measure parity of all disjoint logical Z reps
-        measureLogicals<<<(L*L+63)/64,64>>>(d_logicalInclusionLookup, d_qubits, nOdd, L, bounds);  
-        if (*nOdd >= (L*L)/2) failures += 1;  //majority vote (L*L = number of disjoint logical Z reps)
+        std::cout << L << ',' << ps[i] << ',' << qs[i] << ',' << runs << ',' << failures[i] << '\n';
+
     }
 
-    std::cout << L << ',' << p << ',' << q << ',' << runs << ',' << cycles << ',' << apps << ',' << pfreq << ',' << failures << '\n';
+    cudaFree(d_qubits);
+    cudaFree(d_syndrome);
+    cudaFree(d_faceToEdges);
+    cudaFree(d_edgeToFaces);
+    cudaFree(d_qubitInclusionLookup);
+    cudaFree(d_stabInclusionLookup);
+    cudaFree(d_logicalInclusionLookup);
+    cudaFree(nOdd);
     return 0;
 }
