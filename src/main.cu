@@ -97,15 +97,35 @@ int main(int argc, char *argv[])
                 applyErrors<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_states, d_syndrome, qs[i]);                  //measurement errors
                 cudaDeviceSynchronize();
                         
-                for (int app=1; app<apps+1; ++app)  //start on 1 instead of 0 so app % pfreq != 0 on the first loop (unless pfreq=1)
+                for (int app=1; app<apps; ++app)  //start on 1 instead of 0 so app % pfreq != 0 on the first loop (unless pfreq=1)
                 {
                     //use pflip every pfreq applications, otherwise use regular flip
+                    updateSyndromeMessages<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_qubitMessages, d_syndrome, 
+                                                                    d_syndromeMessages, d_edgeToFaces, d_faceToEdges);
+                    cudaDeviceSynchronize();
+                    updateQubitMessages<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubitMessages, d_syndromeMessages, 
+                                                                                    d_faceToEdges, d_edgeToFaces, p);
+                    calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, d_qubitMarginals, d_syndromeMessages, p);
+                    cudaDeviceSynchronize();
                     if (app % pfreq == 0) pflip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
-                                                                           d_qubits, d_syndrome, d_faceToEdges, d_states);
+                                                                           d_qubits, d_syndrome, d_faceToEdges, d_edgeToFaces, 
+                                                                           d_qubitMessages, d_qubitMarginals, d_states);
                     else flip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
-                                                          d_qubits, d_syndrome, d_faceToEdges);
+                                                          d_qubits, d_syndrome, d_faceToEdges d_edgeToFaces,
+                                                          d_qubitMessages, d_qubitMarginals);
                     cudaDeviceSynchronize();
                 }
+
+                //Flip all qubits with marginals > 0.5 for final iteration instead of using flip
+                updateSyndromeMessages<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_qubitMessages, d_syndrome, 
+                                                                    d_syndromeMessages, d_edgeToFaces, d_faceToEdges);
+                cudaDeviceSynchronize();
+                updateQubitMessages<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubitMessages, d_syndromeMessages, 
+                                                                                d_faceToEdges, d_edgeToFaces, p);
+                calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, d_qubitMarginals, d_syndromeMessages, p);
+                cudaDeviceSynchronize();
+                bpCorrection<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, d_qubitMarginals);
+                cudaDeviceSynchronize();
             }
 
             *nOdd = 0;
