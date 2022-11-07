@@ -144,7 +144,7 @@ void updateQubitMessagesWrap(int N, int* lookup, int* qubitMessages, int* syndro
     cudaFree(d_edgeToFaces);
 }
 
-void calcMarginalsWrap(int N, int* lookup, int* qubits, int* qubitMarginals, int* syndromeMessages, int p)
+void calcMarginalsWrap(int N, int* lookup, int* qubitMarginals, int* syndromeMessages, int p)
 {
     int *d_qLookup, *d_qubits, *d_qubitMarginals, *d_syndromeMessages;
     cudaMalloc(&d_qLookup, ((N+255)/256)*256*sizeof(int));

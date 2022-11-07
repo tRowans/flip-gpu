@@ -21,7 +21,7 @@ __global__ void updateSyndromeMessages(int* lookup, int* qubitMessages, int* syn
 
 __global__ void updateQubitMessages(int* lookup, int* qubitMessages, int* syndromeMessages, int* faceToEdges, int* edgeToFaces, int p);
 
-__global__ void calcMarginals(int* lookup, int* qubits, int* qubitMarginals, int* syndromeMessages, int p);
+__global__ void calcMarginals(int* lookup, int* qubitMarginals, int* syndromeMessages, int p);
 
 __global__ void bpCorrection(int* lookup, int* qubits, int* qubitMarginals);
 

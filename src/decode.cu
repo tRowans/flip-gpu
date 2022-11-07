@@ -231,7 +231,7 @@ void updateQubitMessages(int* lookup, int* qubitMessages, int* syndromeMessages,
 }
 
 __global__
-void calcMarginals(int* lookup, int* qubits, int* qubitMarginals, int* syndromeMessages, int p)
+void calcMarginals(int* lookup, int* qubitMarginals, int* syndromeMessages, int p)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
     if (lookup[threadID] == 1)
