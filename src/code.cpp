@@ -115,7 +115,7 @@ void Code::buildEdgeToFaces()
         else if (dir == y)
         {
             edgeToFaces[e][0] = 3*v + 2; // yz
-            edgeToFaces[e][1] = 3 * v; // xy
+            edgeToFaces[e][1] = 3*v; // xy
             edgeToFaces[e][2] = 3*neigh(v, z, -1) + 2; // y,-z
             edgeToFaces[e][3] = 3*neigh(v, x, -1); // -x,y
         }

@@ -2,6 +2,7 @@
 #include "decode_wrappers.cuh"
 #include "prepCode.h"
 #include<random>
+#include<typeinfo>
 
 //------------------------------------------------------------
 
@@ -67,13 +68,20 @@ TEST(flipTest, SingleError)
     int syndrome[3*6*6*6] = {};
     int qubitsExpected[3*6*6*6] = {};
     int syndromeExpected[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        //This is just a trick to make flip run normally, don't want to test this right now
+        qubitMarginals[i] = 1.0;
+    }
     qubits[0] = 1;
     syndrome[0] = 1;
     syndrome[1] = 1;
     syndrome[4] = 1;
     syndrome[18] = 1;
-    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup, 
-                 testCodeC.stabInclusionLookup, qubits, syndrome, testCodeC.faceToEdges);
+    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
     for (int i=0; i<3*6*6*6; ++i)
     {
         EXPECT_EQ(qubits[i], qubitsExpected[i]);
@@ -87,6 +95,12 @@ TEST(flipTest, TwoErrors)
     int syndrome[3*6*6*6] = {};
     int qubitsExpected[3*6*6*6] = {};
     int syndromeExpected[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        qubitMarginals[i] = 1.0;
+    }
     qubits[0] = 1;
     qubits[3] = 1;
     syndrome[0] = 1;
@@ -95,8 +109,8 @@ TEST(flipTest, TwoErrors)
     syndrome[7] = 1;
     syndrome[18] = 1;
     syndrome[21] = 1;
-    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup,
-                 testCodeC.stabInclusionLookup, qubits, syndrome, testCodeC.faceToEdges);
+    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
     for (int i=0; i<3*6*6*6; ++i)
     {
         EXPECT_EQ(qubits[i], qubitsExpected[i]);
@@ -110,6 +124,12 @@ TEST(flipTest, ThreeErrors)
     int syndrome[3*6*6*6] = {};
     int qubitsExpected[3*6*6*6] = {};
     int syndromeExpected[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        qubitMarginals[i] = 1.0;
+    }
     qubits[0] = 1;
     qubits[3] = 1;
     qubits[21] = 1;
@@ -126,8 +146,8 @@ TEST(flipTest, ThreeErrors)
     syndromeExpected[4] = 1;
     syndromeExpected[7] = 1;
     syndromeExpected[21] = 1;
-    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup,
-                 testCodeC.stabInclusionLookup, qubits, syndrome, testCodeC.faceToEdges);
+    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
     for (int i=0; i<3*6*6*6; ++i)
     {
         EXPECT_EQ(qubits[i], qubitsExpected[i]);
@@ -141,6 +161,12 @@ TEST(flipTest, FourErrors)
     int syndrome[3*6*6*6] = {};
     int qubitsExpected[3*6*6*6] = {};
     int syndromeExpected[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        qubitMarginals[i] = 1.0;
+    }
     qubits[0] = 1;
     qubits[3] = 1;
     qubits[18] = 1;
@@ -165,12 +191,73 @@ TEST(flipTest, FourErrors)
     syndromeExpected[25] = 1;
     syndromeExpected[36] = 1;
     syndromeExpected[39] = 1;
-    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup, 
-                 testCodeC.stabInclusionLookup, qubits, syndrome, testCodeC.faceToEdges);
+    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
     for (int i=0; i<3*6*6*6; ++i)
     {
         EXPECT_EQ(qubits[i], qubitsExpected[i]);
         EXPECT_EQ(syndrome[i], syndromeExpected[i]);
+    }
+}
+TEST(flipTest, CheckBpFunctionality)
+{
+    int qubits[3*6*6*6] = {};
+    int syndrome[3*6*6*6] = {};
+    int qubitsExpected[3*6*6*6] = {};
+    int syndromeExpected[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    qubits[0] = 1;
+    qubits[6] = 1;
+    syndrome[0] = 1;
+    syndrome[1] = 1;
+    syndrome[4] = 1;
+    syndrome[18] = 1;
+    syndrome[6] = 1;
+    syndrome[7] = 1;
+    syndrome[10] = 1;
+    syndrome[24] = 1;
+    qubitsExpected[6] = 1;
+    syndromeExpected[6] = 1;
+    syndromeExpected[7] = 1;
+    syndromeExpected[10] = 1;
+    syndromeExpected[24] = 1;
+    qubitMarginals[0] = 1.0;
+    //Should swap these
+    qubitMessages[8*0+2*0] = 0.0;        //Messages from q0 to s0
+    qubitMessages[8*0+2*0+1] = 1.0;
+    qubitMessages[8*1+2*1] = 0.0;        //Messages from q0 to s1
+    qubitMessages[8*1+2*1+1] = 1.0;
+    qubitMessages[8*4+2*3] = 0.0;        //Messages from q0 to s4
+    qubitMessages[8*4+2*3+1] = 1.0;
+    qubitMessages[8*18+2*2] = 0.0;       //Messages from q0 to s18
+    qubitMessages[8*18+2*2+1] = 1.0;
+    //Should leave these the same
+    qubitMessages[8*6+2*0] = 0.0;        //Messages from q6 to s6
+    qubitMessages[8*6+2*0+1] = 1.0;
+    qubitMessages[8*7+2*1] = 0.0;        //Messages from q6 to s7
+    qubitMessages[8*7+2*1+1] = 1.0;
+    qubitMessages[8*10+2*3] = 0.0;       //Messages from q6 to s10
+    qubitMessages[8*10+2*3+1] = 1.0;
+    qubitMessages[8*24+2*2] = 0.0;       //Messages from q6 to s24
+    qubitMessages[8*24+2*2+1] = 1.0;
+    flipWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
+    for (int i=0; i<8*3*6*6*6; ++i)
+    {
+        if (i < 3*6*6*6)
+        {
+            EXPECT_EQ(qubits[i], qubitsExpected[i]);
+            EXPECT_EQ(syndrome[i], syndromeExpected[i]);
+            if (i == 0) EXPECT_FLOAT_EQ(qubitMarginals[i], 1.0);
+            else EXPECT_FLOAT_EQ(qubitMarginals[i], 0.0);
+        }
+        if (i == 0 || i == 10 || i == 38 || i == 148 ||
+            i == 49 || i == 59 || i == 87 || i == 197)
+        {
+            EXPECT_FLOAT_EQ(qubitMessages[i], 1.0);
+        }
+        else EXPECT_FLOAT_EQ(qubitMessages[i], 0.0);
     }
 }
 
@@ -184,13 +271,19 @@ TEST(pflipTest, OneError)
     int syndrome[3*6*6*6] = {};
     int qubitsExpected[3*6*6*6] = {};
     int syndromeExpected[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        qubitMarginals[i] = 1.0;
+    }
     qubits[0] = 1;
     syndrome[0] = 1;
     syndrome[1] = 1;
     syndrome[4] = 1;
     syndrome[18] = 1;
-    pflipWrap(3*6*6*6, rd(), testCodeC.qubitInclusionLookup,
-                 testCodeC.stabInclusionLookup, qubits, syndrome, testCodeC.faceToEdges);
+    pflipWrap(3*6*6*6, rd(), testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
     for (int i=0; i<3*6*6*6; ++i)
     {
         EXPECT_EQ(qubits[i], qubitsExpected[i]);
@@ -205,6 +298,12 @@ TEST(pflipTest, TwoErrors)
     int syndrome[3*6*6*6] = {};
     int qubitsExpected[3*6*6*6] = {};
     int syndromeExpected[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        qubitMarginals[i] = 1.0;
+    }
     qubits[0] = 1;
     qubits[3] = 1;
     syndrome[0] = 1;
@@ -213,8 +312,8 @@ TEST(pflipTest, TwoErrors)
     syndrome[7] = 1;
     syndrome[18] = 1;
     syndrome[21] = 1;
-    pflipWrap(3*6*6*6, rd(), testCodeC.qubitInclusionLookup,
-                  testCodeC.stabInclusionLookup, qubits, syndrome, testCodeC.faceToEdges);
+    pflipWrap(3*6*6*6, rd(), testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
     for (int i=0; i<3*6*6*6; ++i)
     {
         EXPECT_EQ(qubits[i], qubitsExpected[i]);
@@ -227,6 +326,12 @@ TEST(pflipTest, ThreeErrors)
     std::random_device rd{};
     int qubits[3*6*6*6] = {};
     int syndrome[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    for (int i=0; i<3*6*6*6; ++i)
+    {
+        qubitMarginals[i] = 1.0;
+    }
     qubits[0] = 1;
     qubits[3] = 1;
     qubits[21] = 1;
@@ -260,8 +365,8 @@ TEST(pflipTest, ThreeErrors)
     sOptions[3][19] = 1;
     sOptions[3][22] = 1;
     sOptions[3][36] = 1;
-    pflipWrap(3*6*6*6, rd(), testCodeC.qubitInclusionLookup,
-                  testCodeC.stabInclusionLookup, qubits, syndrome, testCodeC.faceToEdges);
+    pflipWrap(3*6*6*6, rd(), testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
     int qChecks[4] = {};
     int sChecks[4] = {};
     for (int i=0; i<4; ++i)
@@ -274,6 +379,68 @@ TEST(pflipTest, ThreeErrors)
     }
     EXPECT_EQ(qChecks[0]+qChecks[1]+qChecks[2]+qChecks[3],3);
     EXPECT_EQ(sChecks[0]+sChecks[1]+sChecks[2]+sChecks[3],3);
+}
+TEST(pflipTest, CheckBpFunctionality)
+{
+    std::random_device rd{};
+    int qubits[3*6*6*6] = {};
+    int syndrome[3*6*6*6] = {};
+    int qubitsExpected[3*6*6*6] = {};
+    int syndromeExpected[3*6*6*6] = {};
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
+    qubits[0] = 1;
+    qubits[6] = 1;
+    syndrome[0] = 1;
+    syndrome[1] = 1;
+    syndrome[4] = 1;
+    syndrome[18] = 1;
+    syndrome[6] = 1;
+    syndrome[7] = 1;
+    syndrome[10] = 1;
+    syndrome[24] = 1;
+    qubitsExpected[6] = 1;
+    syndromeExpected[6] = 1;
+    syndromeExpected[7] = 1;
+    syndromeExpected[10] = 1;
+    syndromeExpected[24] = 1;
+    qubitMarginals[0] = 1.0;
+    //Should swap these
+    qubitMessages[8*0+2*0] = 0.0;        //Messages from q0 to s0
+    qubitMessages[8*0+2*0+1] = 1.0;
+    qubitMessages[8*1+2*1] = 0.0;        //Messages from q0 to s1
+    qubitMessages[8*1+2*1+1] = 1.0;
+    qubitMessages[8*4+2*3] = 0.0;        //Messages from q0 to s4
+    qubitMessages[8*4+2*3+1] = 1.0;
+    qubitMessages[8*18+2*2] = 0.0;       //Messages from q0 to s18
+    qubitMessages[8*18+2*2+1] = 1.0;
+    //Should leave these the same
+    qubitMessages[8*6+2*0] = 0.0;        //Messages from q6 to s6
+    qubitMessages[8*6+2*0+1] = 1.0;
+    qubitMessages[8*7+2*1] = 0.0;        //Messages from q6 to s7
+    qubitMessages[8*7+2*1+1] = 1.0;
+    qubitMessages[8*10+2*3] = 0.0;       //Messages from q6 to s10
+    qubitMessages[8*10+2*3+1] = 1.0;
+    qubitMessages[8*24+2*2] = 0.0;       //Messages from q6 to s24
+    qubitMessages[8*24+2*2+1] = 1.0;
+    pflipWrap(3*6*6*6, rd(), testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
+                qubits, syndrome, testCodeC.faceToEdges, testCodeC.edgeToFaces, qubitMessages, qubitMarginals);
+    for (int i=0; i<8*3*6*6*6; ++i)
+    {
+        if (i < 3*6*6*6)
+        {
+            EXPECT_EQ(qubits[i], qubitsExpected[i]);
+            EXPECT_EQ(syndrome[i], syndromeExpected[i]);
+            if (i == 0) EXPECT_FLOAT_EQ(qubitMarginals[i], 1.0);
+            else EXPECT_FLOAT_EQ(qubitMarginals[i], 0.0);
+        }
+        if (i == 0 || i == 10 || i == 38 || i == 148 ||
+            i == 49 || i == 59 || i == 87 || i == 197)
+        {
+            EXPECT_FLOAT_EQ(qubitMessages[i], 1.0);
+        }
+        else EXPECT_FLOAT_EQ(qubitMessages[i], 0.0);
+    }
 }
 
 //------------------------------------------------------------
@@ -427,17 +594,16 @@ TEST(calculateSyndromeTest, ExistingSyndrome2)
 TEST(updateSyndromeMessagesTest, CorrectOutput)
 {
     int syndrome[3*6*6*6] = {};
-    int qubitMessages[8*3*6*6*6] = {};
-    int syndromeMessages[8*3*6*6*6] = {};
-    int syndromeMessagesExpected[8*3*6*6*6] = {};
-    qubits[130] = 1;
+    float qubitMessages[8*3*6*6*6] = {};
+    float syndromeMessages[8*3*6*6*6] = {};
+    float syndromeMessagesExpected[8*3*6*6*6] = {};
     syndrome[129] = 1;
     syndrome[131] = 1;
     syndrome[134] = 1;
     syndrome[237] = 1;
-    int p = 0.01; //assuming 1% error chance
-    int m0 = 0.970596; //this is 3p^2(1-p) + (1-p)^3. This message gets sent by a stabiliser with value 0 (1) to a qubit when we condition on qubit value 0 (1)
-    int m1 = 0.029404; //this is 3p(1-p)^2 + p^3. This message gets sent by a stabiliser with value 0 (1) to a qubit when we condition on qubit value 1 (0)
+    float p = 0.01; //assuming 1% error chance
+    float m0 = 0.970596; //this is 3p^2(1-p) + (1-p)^3. This message gets sent by a stabiliser with value 0 (1) to a qubit when we condition on qubit value 0 (1)
+    float m1 = 0.029404; //this is 3p(1-p)^2 + p^3. This message gets sent by a stabiliser with value 0 (1) to a qubit when we condition on qubit value 1 (0)
     for (int i=0; i<3*6*6*6; ++i)
     {
         for (int j=0; j<4; ++j)
@@ -514,7 +680,7 @@ TEST(updateSyndromeMessagesTest, CorrectOutput)
                                 syndromeMessages, testCodeC.edgeToFaces, testCodeC.faceToEdges);
     for (int i=0; i<8*3*6*6*6; ++i)
     {
-        EXPECTEQ(syndromeMessages[i], syndromeMessagesExpected[i]);
+        EXPECT_FLOAT_EQ(syndromeMessages[i], syndromeMessagesExpected[i]);
     }
 }
 
@@ -522,11 +688,11 @@ TEST(updateSyndromeMessagesTest, CorrectOutput)
 
 TEST(updateQubitMessagesTest, CorrectOutput)
 {
-    int qubitMessages[8*3*6*6*6] = {};
-    int qubitMessagesExpected[8*3*6*6*6] = {};
-    int syndromeMessages[8*3*6*6*6] = {};
-    int m0 = 0.970596; 
-    int m1 = 0.029404;
+    float qubitMessages[8*3*6*6*6] = {};
+    float qubitMessagesExpected[8*3*6*6*6] = {};
+    float syndromeMessages[8*3*6*6*6] = {};
+    float m0 = 0.970596; 
+    float m1 = 0.029404;
 
     for (int i=0; i<3*6*6*6; ++i)
     {
@@ -600,29 +766,29 @@ TEST(updateQubitMessagesTest, CorrectOutput)
     updateQubitMessagesWrap(3*6*6*6, testCodeC.qubitInclusionLookup, qubitMessages,
                              syndromeMessages, testCodeC.faceToEdges, testCodeC.edgeToFaces, 0.01);
     //just check some edges because checking the whole thing is too much of a headache
-    int a0 = 0.99*m0*m0*m0 + 0.01*m1*m1*m1;
-    int a1 = 0.99*m1*m1*m1 + 0.01*m0*m0*m0;
-    int a2 = 0.99*m0*m0*m1 + 0.01*m0*m1*m1;
+    float a0 = 0.99f*m0*m0*m0 + 0.01f*m1*m1*m1;
+    float a1 = 0.99f*m1*m1*m1 + 0.01f*m0*m0*m0;
+    float a2 = 0.99f*m0*m0*m1 + 0.01f*m0*m1*m1;
     //-1 stabiliser
-    int entries129[8] = {(0.99*m0*m0*m0)/a0, (0.01*m1*m1*m1)/a0,
-                         (0.99*m1*m1*m1)/a1, (0.01*m0*m0*m0)/a1,
-                         (0.99*m0*m0*m0)/a0, (0.01*m1*m1*m1)/a0,
-                         (0.99*m0*m0*m0)/a0, (0.01*m1*m1*m1)/a0};
+    float entries129[8] = {(0.99f*m0*m0*m0)/a0, (0.01f*m1*m1*m1)/a0,
+                         (0.99f*m1*m1*m1)/a1, (0.01f*m0*m0*m0)/a1,
+                         (0.99f*m0*m0*m0)/a0, (0.01f*m1*m1*m1)/a0,
+                         (0.99f*m0*m0*m0)/a0, (0.01f*m1*m1*m1)/a0};
     //shares a vertex with a -1 stabiliser
-    int entries112[8] = {(0.99*m0*m0*m1)/a2, (0.01*m0*m1*m1)/a2,
-                         (0.99*m0*m0*m1)/a2, (0.01*m0*m1*m1)/a2,
-                         (0.99*m0*m0*m0)/a0, (0.01*m1*m1*m1)/a0,
-                         (0.99*m0*m0*m0)/a0, (0.01*m1*m1*m1)/a0};
+    float entries112[8] = {(0.99f*m0*m0*m1)/a2, (0.01f*m0*m1*m1)/a2,
+                         (0.99f*m0*m0*m1)/a2, (0.01f*m0*m1*m1)/a2,
+                         (0.99f*m0*m0*m0)/a0, (0.01f*m1*m1*m1)/a0,
+                         (0.99f*m0*m0*m0)/a0, (0.01f*m1*m1*m1)/a0};
     //disconnected from all -1 stabilisers
-    int entries128[8] = {(0.99*m0*m0*m1)/a2, (0.01*m0*m1*m1)/a2,
-                         (0.99*m0*m0*m0)/a0, (0.01*m1*m1*m1)/a0,
-                         (0.99*m0*m0*m0)/a0, (0.01*m1*m1*m1)/a0,
-                         (0.99*m0*m0*m0)/a0, (0.01*m1*m1*m1)/a0};
+    float entries128[8] = {(0.99f*m0*m0*m1)/a2, (0.01f*m0*m1*m1)/a2,
+                         (0.99f*m0*m0*m0)/a0, (0.01f*m1*m1*m1)/a0,
+                         (0.99f*m0*m0*m0)/a0, (0.01f*m1*m1*m1)/a0,
+                         (0.99f*m0*m0*m0)/a0, (0.01f*m1*m1*m1)/a0};
     for (int i=0; i<8; ++i)
     {
-        EXPECTEQ(entries129[i], qubitMessages[8*129+i]);
-        EXPECTEQ(entries112[i], qubitMessages[8*112+i]);
-        EXPECTEQ(entries128[i], qubitMessages[8*128+i]);
+        EXPECT_FLOAT_EQ(entries129[i], qubitMessages[8*129+i]);
+        EXPECT_FLOAT_EQ(entries112[i], qubitMessages[8*112+i]);
+        EXPECT_FLOAT_EQ(entries128[i], qubitMessages[8*128+i]);
     }
 }
 
@@ -630,11 +796,11 @@ TEST(updateQubitMessagesTest, CorrectOutput)
 
 TEST(calcMarginalsTest, CorrectOutput)
 {
-    int qubitMarginals[3*6*6*6] = {};
-    int qubitMarginalsExpected[3*6*6*6] = {};
-    int syndromeMessages[8*3*6*6*6] = {};
-    int m0 = 0.970596; 
-    int m1 = 0.029404;
+    float qubitMarginals[3*6*6*6] = {};
+    float qubitMarginalsExpected[3*6*6*6] = {};
+    float syndromeMessages[8*3*6*6*6] = {};
+    float m0 = 0.970596; 
+    float m1 = 0.029404;
 
     for (int i=0; i<3*6*6*6; ++i)
     {
@@ -705,22 +871,22 @@ TEST(calcMarginalsTest, CorrectOutput)
             }
         }
     }
-    a0 = 0.99*m0*m0*m0*m0 + 0.01*m1*m1*m1*m1;
-    a1 = 0.99*m1*m1*m1*m1 + 0.01*m0*m0*m0*m0;
-    a2 = 0.99*m0*m0*m0*m1 + 0.01*m0*m1*m1*m1;
+    float a0 = 0.99f*m0*m0*m0*m0 + 0.01f*m1*m1*m1*m1;
+    float a1 = 0.99f*m1*m1*m1*m1 + 0.01f*m0*m0*m0*m0;
+    float a2 = 0.99f*m0*m0*m0*m1 + 0.01f*m0*m1*m1*m1;
     for (int i=0; i<3*6*6*6; ++i)
     {
         if (i == 130) qubitMarginalsExpected[i] = (0.01*m0*m0*m0*m0)/a1;
         else if (i == 22 || i == 111 || i == 129
               || i == 113 || i == 127 || i == 131
               || i == 116 || i == 133 || i == 134
-              || i == 219 || i == 237 || i == 238) qubitMarginalsExpected[i] = (0.01*m0*m1*m1*m1)/a2;
-        else qubitMarignalsExpected[i] = (0.01*m0*m0*m0*m0)/a0;
+              || i == 219 || i == 237 || i == 238) qubitMarginalsExpected[i] = (0.01f*m0*m1*m1*m1)/a2;
+        else qubitMarginalsExpected[i] = (0.01f*m1*m1*m1*m1)/a0;
     }
     calcMarginalsWrap(3*6*6*6, testCodeC.qubitInclusionLookup, qubitMarginals, syndromeMessages, 0.01);
     for (int i=0; i<3*6*6*6; ++i)
     {
-        EXPECTEQ(qubitMarginals[i], qubitMarginalsExpected[i]);
+        EXPECT_FLOAT_EQ(qubitMarginals[i], qubitMarginalsExpected[i]);
     }
 }
 
@@ -730,15 +896,21 @@ TEST(fullBPTest, OneError)
 {
     int qubits[3*6*6*6] = {};
     int syndrome[3*6*6*6] = {};
-    int qubitMessages[8*3*6*6*6] = {};
-    int syndromeMessages[8*3*6*6*6] = {};
-    int qubitMarginals[3*6*6*6] = {}
+    float qubitMessages[8*3*6*6*6] = {};
+    float syndromeMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
 
     qubits[0] = 1;
     syndrome[0] = 1;
     syndrome[1] = 1;
     syndrome[4] = 1;
     syndrome[18] = 1;
+    
+    for (int i=0; i<4*3*6*6*6; ++i)
+    {
+        qubitMessages[2*i] = 0.99;
+        qubitMessages[2*i+1] = 0.01;
+    }
 
     for (int i=0; i<30; ++i)
     {
@@ -752,16 +924,16 @@ TEST(fullBPTest, OneError)
 
     for (int i=0; i<3*6*6*6; ++i)
     {
-        EXPECTEQ(qubits[i], 0);
+        EXPECT_EQ(qubits[i], 0);
     }
 }
 TEST(fullBPTest, TwoErrors)
 {
     int qubits[3*6*6*6] = {};
     int syndrome[3*6*6*6] = {};
-    int qubitMessages[8*3*6*6*6] = {};
-    int syndromeMessages[8*3*6*6*6] = {};
-    int qubitMarginals[3*6*6*6] = {}
+    float qubitMessages[8*3*6*6*6] = {};
+    float syndromeMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
 
     qubits[0] = 1;
     qubits[3] = 1;
@@ -772,6 +944,12 @@ TEST(fullBPTest, TwoErrors)
     syndrome[18] = 1;
     syndrome[21] = 1;
 
+    for (int i=0; i<4*3*6*6*6; ++i)
+    {
+        qubitMessages[2*i] = 0.99;
+        qubitMessages[2*i+1] = 0.01;
+    }
+
     for (int i=0; i<30; ++i)
     {
         updateSyndromeMessagesWrap(3*6*6*6, testCodeC.stabInclusionLookup, qubitMessages, syndrome, 
@@ -784,16 +962,16 @@ TEST(fullBPTest, TwoErrors)
 
     for (int i=0; i<3*6*6*6; ++i)
     {
-        EXPECTEQ(qubits[i], 0);
+        EXPECT_EQ(qubits[i], 0);
     }
 }
 TEST(fullBPTest, ThreeErrors)
 {
     int qubits[3*6*6*6] = {};
     int syndrome[3*6*6*6] = {};
-    int qubitMessages[8*3*6*6*6] = {};
-    int syndromeMessages[8*3*6*6*6] = {};
-    int qubitMarginals[3*6*6*6] = {}
+    float qubitMessages[8*3*6*6*6] = {};
+    float syndromeMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
 
     qubits[0] = 1;
     qubits[3] = 1;
@@ -807,6 +985,12 @@ TEST(fullBPTest, ThreeErrors)
     syndrome[25] = 1;
     syndrome[39] = 1;
 
+    for (int i=0; i<4*3*6*6*6; ++i)
+    {
+        qubitMessages[2*i] = 0.99;
+        qubitMessages[2*i+1] = 0.01;
+    }
+
     for (int i=0; i<30; ++i)
     {
         updateSyndromeMessagesWrap(3*6*6*6, testCodeC.stabInclusionLookup, qubitMessages, syndrome, 
@@ -819,16 +1003,16 @@ TEST(fullBPTest, ThreeErrors)
 
     for (int i=0; i<3*6*6*6; ++i)
     {
-        EXPECTEQ(qubits[i], 0);
+        EXPECT_EQ(qubits[i], 0);
     }
 }
 TEST(fullBPTest, FourErrors)
 {
     int qubits[3*6*6*6] = {};
     int syndrome[3*6*6*6] = {};
-    int qubitMessages[8*3*6*6*6] = {};
-    int syndromeMessages[8*3*6*6*6] = {};
-    int qubitMarginals[3*6*6*6] = {}
+    float qubitMessages[8*3*6*6*6] = {};
+    float syndromeMessages[8*3*6*6*6] = {};
+    float qubitMarginals[3*6*6*6] = {};
 
     qubits[0] = 1;
     qubits[3] = 1;
@@ -843,6 +1027,12 @@ TEST(fullBPTest, FourErrors)
     syndrome[36] = 1;
     syndrome[39] = 1;
 
+    for (int i=0; i<4*3*6*6*6; ++i)
+    {
+        qubitMessages[2*i] = 0.99;
+        qubitMessages[2*i+1] = 0.01;
+    }
+
     for (int i=0; i<30; ++i)
     {
         updateSyndromeMessagesWrap(3*6*6*6, testCodeC.stabInclusionLookup, qubitMessages, syndrome, 
@@ -855,7 +1045,7 @@ TEST(fullBPTest, FourErrors)
 
     for (int i=0; i<3*6*6*6; ++i)
     {
-        EXPECTEQ(qubits[i], 0);
+        EXPECT_EQ(qubits[i], 0);
     }
 }
 

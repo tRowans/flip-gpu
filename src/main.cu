@@ -41,12 +41,16 @@ int main(int argc, char *argv[])
 
     //pointers for arrays on device
     int *d_qubits, *d_syndrome;
+    float *d_qubitMessages, *d_syndromeMessages, *d_qubitMarginals;
     int *d_faceToEdges, *d_edgeToFaces;
     int *d_qubitInclusionLookup, *d_stabInclusionLookup, *d_logicalInclusionLookup;
 
     //don't need to copy for these, just set to all zeros on device (later)
     cudaMalloc(&d_qubits, N*sizeof(int));
     cudaMalloc(&d_syndrome, N*sizeof(int));
+    cudaMalloc(&d_qubitMessages, 8*N*sizeof(float));
+    cudaMalloc(&d_syndromeMessages, 8*N*sizeof(float));
+    cudaMalloc(&d_qubitMarginals, N*sizeof(float));
 
     //these get copied to device from initialised versions in code object
     cudaMalloc(&d_faceToEdges, 4*N*sizeof(int));
@@ -104,14 +108,14 @@ int main(int argc, char *argv[])
                                                                     d_syndromeMessages, d_edgeToFaces, d_faceToEdges);
                     cudaDeviceSynchronize();
                     updateQubitMessages<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubitMessages, d_syndromeMessages, 
-                                                                                    d_faceToEdges, d_edgeToFaces, p);
-                    calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, d_qubitMarginals, d_syndromeMessages, p);
+                                                                                    d_faceToEdges, d_edgeToFaces, ps[i]);
+                    calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubitMarginals, d_syndromeMessages, ps[i]);
                     cudaDeviceSynchronize();
                     if (app % pfreq == 0) pflip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
                                                                            d_qubits, d_syndrome, d_faceToEdges, d_edgeToFaces, 
                                                                            d_qubitMessages, d_qubitMarginals, d_states);
                     else flip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
-                                                          d_qubits, d_syndrome, d_faceToEdges d_edgeToFaces,
+                                                          d_qubits, d_syndrome, d_faceToEdges, d_edgeToFaces,
                                                           d_qubitMessages, d_qubitMarginals);
                     cudaDeviceSynchronize();
                 }
@@ -121,8 +125,8 @@ int main(int argc, char *argv[])
                                                                     d_syndromeMessages, d_edgeToFaces, d_faceToEdges);
                 cudaDeviceSynchronize();
                 updateQubitMessages<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubitMessages, d_syndromeMessages, 
-                                                                                d_faceToEdges, d_edgeToFaces, p);
-                calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, d_qubitMarginals, d_syndromeMessages, p);
+                                                                                d_faceToEdges, d_edgeToFaces, ps[i]);
+                calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubitMarginals, d_syndromeMessages, ps[i]);
                 cudaDeviceSynchronize();
                 bpCorrection<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, d_qubitMarginals);
                 cudaDeviceSynchronize();

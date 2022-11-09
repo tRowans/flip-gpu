@@ -1,5 +1,6 @@
 #include "decode.cuh"
 #include "decode_wrappers.cuh"
+#include<iostream>
 
 //Only used for testing of functions as nvcc doesn't like compiling gtest
 
@@ -49,71 +50,93 @@ void calculateSyndromeWrap(int N, int* lookup, int* qubits, int* syndrome, int**
     cudaFree(d_edgeToFaces);
 }
 
-void flipWrap(int N, int* qLookup, int* sLookup, int* qubits, int* syndrome, int** faceToEdges)
+void flipWrap(int N, int* qLookup, int* sLookup, int* qubits, int* syndrome, int** faceToEdges, int** edgeToFaces, float* qubitMessages, float* qubitMarginals)
 {
-    int *d_qLookup, *d_sLookup, *d_qubits, *d_syndrome, *d_faceToEdges;
+    int *d_qLookup, *d_sLookup, *d_qubits, *d_syndrome, *d_faceToEdges, *d_edgeToFaces;
+    float *d_qubitMessages, *d_qubitMarginals;
     cudaMalloc(&d_qubits, N*sizeof(int));
     cudaMalloc(&d_syndrome, N*sizeof(int));
     cudaMalloc(&d_qLookup, ((N+255)/256)*256*sizeof(int));
     cudaMalloc(&d_sLookup, ((N+255)/256)*256*sizeof(int));
     cudaMalloc(&d_faceToEdges, 4*N*sizeof(int));
+    cudaMalloc(&d_edgeToFaces, 4*N*sizeof(int));
+    cudaMalloc(&d_qubitMessages, 8*N*sizeof(float));
+    cudaMalloc(&d_qubitMarginals, N*sizeof(float));
     cudaMemcpy(d_qubits, qubits, N*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_syndrome, syndrome, N*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_qLookup, qLookup, ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_sLookup, sLookup, ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_faceToEdges, faceToEdges[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
-    flip<<<(N+255)/256,256>>>(d_qLookup, d_sLookup, d_qubits, d_syndrome, d_faceToEdges);
+    cudaMemcpy(d_edgeToFaces, edgeToFaces[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_qubitMessages, qubitMessages, 8*N*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_qubitMarginals, qubitMarginals, N*sizeof(float), cudaMemcpyHostToDevice);
+    flip<<<(N+255)/256,256>>>(d_qLookup, d_sLookup, d_qubits, d_syndrome, d_faceToEdges, d_edgeToFaces, d_qubitMessages, d_qubitMarginals);
     cudaMemcpy(qubits, d_qubits, N*sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(syndrome, d_syndrome, N*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(qubitMessages, d_qubitMessages, N*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_qLookup);
     cudaFree(d_sLookup);
     cudaFree(d_qubits);
     cudaFree(d_syndrome);
     cudaFree(d_faceToEdges);
+    cudaFree(d_edgeToFaces);
+    cudaFree(d_qubitMessages);
+    cudaFree(d_qubitMarginals);
 }
 
-void pflipWrap(int N, unsigned int seed, int* qLookup, int* sLookup, int* qubits, int* syndrome, int** faceToEdges)
+void pflipWrap(int N, unsigned int seed, int* qLookup, int* sLookup, int* qubits, int* syndrome, int** faceToEdges, int** edgeToFaces, float* qubitMessages, float* qubitMarginals)
 {
-    int *d_qLookup, *d_sLookup, *d_qubits, *d_syndrome, *d_faceToEdges;
+    int *d_qLookup, *d_sLookup, *d_qubits, *d_syndrome, *d_faceToEdges, *d_edgeToFaces;
+    float *d_qubitMessages, *d_qubitMarginals;
     cudaMalloc(&d_qubits, N*sizeof(int));
     cudaMalloc(&d_syndrome, N*sizeof(int));
     cudaMalloc(&d_qLookup, ((N+255)/256)*256*sizeof(int));
     cudaMalloc(&d_sLookup, ((N+255)/256)*256*sizeof(int));
     cudaMalloc(&d_faceToEdges, 4*N*sizeof(int));
+    cudaMalloc(&d_edgeToFaces, 4*N*sizeof(int));
+    cudaMalloc(&d_qubitMessages, 8*N*sizeof(float));
+    cudaMalloc(&d_qubitMarginals, N*sizeof(float));
     cudaMemcpy(d_qubits, qubits, N*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_syndrome, syndrome, N*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_qLookup, qLookup, ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_sLookup, sLookup, ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_faceToEdges, faceToEdges[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_edgeToFaces, edgeToFaces[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_qubitMessages, qubitMessages, 8*N*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_qubitMarginals, qubitMarginals, N*sizeof(float), cudaMemcpyHostToDevice);
     curandState_t *d_states;
     cudaMalloc(&d_states, N*sizeof(curandState_t));
     createStates<<<(N+255)/256,256>>>(N, seed, d_states);
-    pflip<<<(N+255)/256,256>>>(d_qLookup, d_sLookup, d_qubits, d_syndrome, d_faceToEdges, d_states);
+    pflip<<<(N+255)/256,256>>>(d_qLookup, d_sLookup, d_qubits, d_syndrome, d_faceToEdges, d_edgeToFaces, d_qubitMessages, d_qubitMarginals, d_states);
     cudaMemcpy(qubits, d_qubits, N*sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(syndrome, d_syndrome, N*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(qubitMessages, d_qubitMessages, N*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_qLookup);
     cudaFree(d_sLookup);
     cudaFree(d_qubits);
     cudaFree(d_syndrome);
     cudaFree(d_faceToEdges);
+    cudaFree(d_edgeToFaces);
+    cudaFree(d_qubitMessages);
+    cudaFree(d_qubitMarginals);
 }
 
-void updateSyndromeMessagesWrap(int N, int* lookup, int* qubitMessages, int* syndrome, int* syndromeMessages, int** edgeToFaces, int** faceToEdges)
+void updateSyndromeMessagesWrap(int N, int* lookup, float* qubitMessages, int* syndrome, float* syndromeMessages, int** edgeToFaces, int** faceToEdges)
 {
-    int *d_sLookup, *d_qubitMessages, *d_syndrome, *d_syndromeMessages, *d_edgeToFaces, *d_faceToEdges;
+    int *d_sLookup, *d_syndrome, *d_edgeToFaces, *d_faceToEdges;
+    float *d_qubitMessages, *d_syndromeMessages;
     cudaMalloc(&d_sLookup, ((N+255)/256)*256*sizeof(int));
-    cudaMalloc(&d_qubitMessages, 8*N*sizeof(int));
+    cudaMalloc(&d_qubitMessages, 8*N*sizeof(float));
     cudaMalloc(&d_syndrome, N*sizeof(int));
-    cudaMalloc(&d_syndromeMessages, 8*N*sizeof(int));
+    cudaMalloc(&d_syndromeMessages, 8*N*sizeof(float));
     cudaMalloc(&d_edgeToFaces, 4*N*sizeof(int));
     cudaMalloc(&d_faceToEdges, 4*N*sizeof(int));
     cudaMemcpy(d_sLookup, lookup, ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_qubitMessages, qubitMessages, 8*N*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_qubitMessages, qubitMessages, 8*N*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_syndrome, syndrome, N*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_syndromeMessages, syndromeMessages, 8*N*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_edgeToFaces, edgeToFaces[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_faceToEdges, faceToEdges[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
-    updateSyndromeMessages<<<((N+255)/256,256)>>>(d_sLookup, d_qubitMessages, d_syndrome, d_syndromeMessages, d_edgeToFaces, d_faceToEdges);
+    updateSyndromeMessages<<<(N+255)/256,256>>>(d_sLookup, d_qubitMessages, d_syndrome, d_syndromeMessages, d_edgeToFaces, d_faceToEdges);
     cudaMemcpy(syndromeMessages, d_syndromeMessages, 8*N*sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(d_sLookup);
     cudaFree(d_qubitMessages);
@@ -123,20 +146,21 @@ void updateSyndromeMessagesWrap(int N, int* lookup, int* qubitMessages, int* syn
     cudaFree(d_faceToEdges);
 }
 
-void updateQubitMessagesWrap(int N, int* lookup, int* qubitMessages, int* syndromeMessages, int** faceToEdges, int** edgeToFaces, int p)
+void updateQubitMessagesWrap(int N, int* lookup, float* qubitMessages, float* syndromeMessages, int** faceToEdges, int** edgeToFaces, float p)
 {
-    int *d_qLookup, *d_qubitMessages, *d_syndromeMessages, *d_faceToEdges, *d_edgeToFaces;
+    int *d_qLookup, *d_faceToEdges, *d_edgeToFaces;
+    float *d_qubitMessages, *d_syndromeMessages;
     cudaMalloc(&d_qLookup, ((N+255)/256)*256*sizeof(int));
-    cudaMalloc(&d_qubitMessages, 8*N*sizeof(int));
-    cudaMalloc(&d_syndromeMessages, 8*N*sizeof(int));
+    cudaMalloc(&d_qubitMessages, 8*N*sizeof(float));
+    cudaMalloc(&d_syndromeMessages, 8*N*sizeof(float));
     cudaMalloc(&d_faceToEdges, 4*N*sizeof(int));
     cudaMalloc(&d_edgeToFaces, 4*N*sizeof(int));
     cudaMemcpy(d_qLookup, lookup, ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_syndromeMessages, syndromeMessages, 8*N*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_syndromeMessages, syndromeMessages, 8*N*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_faceToEdges, faceToEdges[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_edgeToFaces, edgetoFaces[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
-    updateQubitMessages<<<((N+255)/256,256)>>>(d_qLookup, d_qubitMessages, d_syndromeMesssages, d_faceToEdges, d_edgeToFaces, p);
-    cudaMemcpy(qubitMessages, d_qubitMessages, 8*N*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(d_edgeToFaces, edgeToFaces[0], 4*N*sizeof(int), cudaMemcpyHostToDevice);
+    updateQubitMessages<<<(N+255)/256,256>>>(d_qLookup, d_qubitMessages, d_syndromeMessages, d_faceToEdges, d_edgeToFaces, p);
+    cudaMemcpy(qubitMessages, d_qubitMessages, 8*N*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_qLookup);
     cudaFree(d_qubitMessages);
     cudaFree(d_syndromeMessages);
@@ -144,35 +168,34 @@ void updateQubitMessagesWrap(int N, int* lookup, int* qubitMessages, int* syndro
     cudaFree(d_edgeToFaces);
 }
 
-void calcMarginalsWrap(int N, int* lookup, int* qubitMarginals, int* syndromeMessages, int p)
+void calcMarginalsWrap(int N, int* lookup, float* qubitMarginals, float* syndromeMessages, float p)
 {
-    int *d_qLookup, *d_qubits, *d_qubitMarginals, *d_syndromeMessages;
+    int *d_qLookup;
+    float *d_qubitMarginals, *d_syndromeMessages;
     cudaMalloc(&d_qLookup, ((N+255)/256)*256*sizeof(int));
-    cudaMalloc(&d_qubits, N*sizeof(int));
-    cudaMalloc(&d_qubitMarginals, N*sizeof(int));
-    cudaMalloc(&d_syndromeMessages, 8*N*sizeof(int));
+    cudaMalloc(&d_qubitMarginals, N*sizeof(float));
+    cudaMalloc(&d_syndromeMessages, 8*N*sizeof(float));
     cudaMemcpy(d_qLookup, lookup, ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_qubits, qubits, N*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_qubitMarginals, qubitMarginals, N*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_syndromeMessages, syndromeMessages, 8*N*sizeof(int), cudaMemcpyHostToDevice);
-    calcMarginals<<<((N+255)/256,256)>>>(d_qLookup, d_qubits, d_qubitMarginals, d_syndromeMessages, p);
-    cudaMemcpy(qubitMarginals, d_qubitMarginals, N*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(d_qubitMarginals, qubitMarginals, N*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_syndromeMessages, syndromeMessages, 8*N*sizeof(float), cudaMemcpyHostToDevice);
+    calcMarginals<<<(N+255)/256,256>>>(d_qLookup, d_qubitMarginals, d_syndromeMessages, p);
+    cudaMemcpy(qubitMarginals, d_qubitMarginals, N*sizeof(float), cudaMemcpyDeviceToHost);
     cudaFree(d_qLookup);
-    cudaFree(d_qubits);
-    cudaFree(d_qubitsMarginals);
+    cudaFree(d_qubitMarginals);
     cudaFree(d_syndromeMessages);
 }
 
-void bpCorrectionWrap(int N, int* lookup, int* qubits, int* qubitMarginals)
+void bpCorrectionWrap(int N, int* lookup, int* qubits, float* qubitMarginals)
 {
-    int *d_qLookup, *d_qubits, *d_qubitMarginals;
+    int *d_qLookup, *d_qubits;
+    float *d_qubitMarginals;
     cudaMalloc(&d_qLookup, ((N+255)/256)*256*sizeof(int));
     cudaMalloc(&d_qubits, N*sizeof(int));
-    cudaMalloc(&d_qubitMarginals, N*sizeof(int));
+    cudaMalloc(&d_qubitMarginals, N*sizeof(float));
     cudaMemcpy(d_qLookup, lookup, ((N+255)/256)*256*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_qubits, qubits, N*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_qubitMarginals, qubitMarginals, N*sizeof(int), cudaMemcpyHostToDevice);
-    bpCorrection<<<((N+255)/256,256)>>>(lookup, qubits, qubitMarginals);
+    cudaMemcpy(d_qubitMarginals, qubitMarginals, N*sizeof(float), cudaMemcpyHostToDevice);
+    bpCorrection<<<(N+255)/256,256>>>(d_qLookup, d_qubits, d_qubitMarginals);
     cudaMemcpy(qubits, d_qubits, N*sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(d_qLookup);
     cudaFree(d_qubits);
