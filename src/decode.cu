@@ -26,7 +26,7 @@ void wipeArray(int N, int* array)
 //errorTarget is either qubits or syndrome
 //errorProb is p or q
 __global__
-void applyErrors(int* lookup, curandState_t* states, int* errorTarget, float errorProb)
+void applyErrors(int* lookup, curandState_t* states, int* errorTarget, double errorProb)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per errorTarget element
     if (lookup[threadID] == 1)
@@ -57,10 +57,10 @@ void calculateSyndrome(int* lookup, int* qubits, int* syndrome, int* edgeToFaces
 
 //Regular deterministic flip
 __global__
-void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges, int* edgeToFaces, float* qubitMessages, float* qubitMarginals)
+void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges, int* edgeToFaces, double* variableMessages, double* qubitMarginals)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (qLookup[threadID] == 1 && qubitMarginals[threadID] > 0.5)
+    if (qLookup[threadID] == 1 && qubitMarginals[threadID] < 0)
     {
         int n = 0;
         for (int i=0; i<4; ++i)
@@ -82,8 +82,7 @@ void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdg
                     if (edgeToFaces[4*stab+pos] == threadID) break;
                     else ++pos;
                 }
-                qubitMessages[8*stab+2*pos] = 1 - qubitMessages[8*stab+2*pos];
-                qubitMessages[8*stab+2*pos+1] = 1 - qubitMessages[8*stab+2*pos+1];
+                variableMessages[5*stab+pos] = -1*variableMessages[5*stab+pos];
             }
         }
     }
@@ -92,10 +91,10 @@ void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdg
 //Probabilistic flip
 __global__
 void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges, 
-            int* edgeToFaces, float* qubitMessages, float* qubitMarginals, curandState_t* states)
+            int* edgeToFaces, double* variableMessages, double* qubitMarginals, curandState_t* states)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (qLookup[threadID] == 1 && qubitMarginals[threadID] > 0.5)
+    if (qLookup[threadID] == 1 && qubitMarginals[threadID] < 0)
     {
         int n = 0;
         for (int i=0; i<4; i++)
@@ -116,8 +115,7 @@ void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEd
                     if (edgeToFaces[4*stab+pos] == threadID) break;
                     else ++pos;
                 }
-                qubitMessages[8*stab+2*pos] = 1 - qubitMessages[8*stab+2*pos];
-                qubitMessages[8*stab+2*pos+1] = 1 - qubitMessages[8*stab+2*pos+1];
+                variableMessages[5*stab+pos] = -1*variableMessages[5*stab+pos];
             }
         }
         else if (n == 2) 
@@ -135,8 +133,7 @@ void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEd
                         if (edgeToFaces[4*stab+pos] == threadID) break;
                         else ++pos;
                     }
-                    qubitMessages[8*stab+2*pos] = 1 - qubitMessages[8*stab+2*pos];
-                    qubitMessages[8*stab+2*pos+1] = 1 - qubitMessages[8*stab+2*pos+1];
+                    variableMessages[5*stab+pos] = -1*variableMessages[5*stab+pos];
                 }
             }
         }
@@ -146,77 +143,76 @@ void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEd
 //----------BP----------
 
 __global__
-void updateSyndromeMessages(int* lookup, float* qubitMessages, int* syndrome, float* syndromeMessages, int* edgeToFaces, int* faceToEdges)
+void initVariableMessages(int* lookup, double* variableMessages, double llr0, double llrq0)
 {
-    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per stabiliser
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per factor
     if (lookup[threadID] == 1)
     {
-        float nMessages[8];    //messages from neighbouring qubits
-        for (int i=0; i<8; ++i) nMessages[i] = qubitMessages[8*threadID+i];  
-        int seq[12] = {1,2,3,0,2,3,0,1,3,0,1,2};   //GPU doesn't like 2D stuff but this should really be 4x3
-        for (int i=0; i<4; ++i)
+        for (int i=0; i<4; ++i) variableMessages[5*threadID+i] = llr0;
+        variableMessages[5*threadID+4] = llrq0;
+    }
+}
+
+__global__
+void updateFactorMessages(int* lookup, double* variableMessages, int* syndrome, double* factorMessages, int* edgeToFaces, int* faceToEdges, int N)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per factor (stabiliser)
+    if (lookup[threadID] == 1)
+    {
+        for (int i=0; i<5; ++i)
         {
-            //non-target qubits = {{0,0,0},{1,1,0},{1,0,1},{0,1,1}}, this is the message if syndrome == target qubit 
-            double m0 = nMessages[2*seq[3*i]+0]*nMessages[2*seq[3*i+1]+0]*nMessages[2*seq[3*i+2]+0]
-                       +nMessages[2*seq[3*i]+1]*nMessages[2*seq[3*i+1]+1]*nMessages[2*seq[3*i+2]+0]
-                       +nMessages[2*seq[3*i]+1]*nMessages[2*seq[3*i+1]+0]*nMessages[2*seq[3*i+2]+1]
-                       +nMessages[2*seq[3*i]+0]*nMessages[2*seq[3*i+1]+1]*nMessages[2*seq[3*i+2]+1];
-
-            //non-target qubits = {{1,0,0},{0,1,0},{0,0,1},{1,1,1}}, this is the message if syndrome != target qubit
-            double m1 = nMessages[2*seq[3*i]+1]*nMessages[2*seq[3*i+1]+0]*nMessages[2*seq[3*i+2]+0]
-                       +nMessages[2*seq[3*i]+0]*nMessages[2*seq[3*i+1]+1]*nMessages[2*seq[3*i+2]+0]
-                       +nMessages[2*seq[3*i]+0]*nMessages[2*seq[3*i+1]+0]*nMessages[2*seq[3*i+2]+1]
-                       +nMessages[2*seq[3*i]+1]*nMessages[2*seq[3*i+1]+1]*nMessages[2*seq[3*i+2]+1];
-
-            //syndromeMessages is organised by which qubit the messages are going to, not which stabiliser they come from.
-            //Each qubit recieves 8 messages (two per stabiliser, corresponding to inferred values of 0 and 1 respectively). 
-            //These four pairs are organised in the same order as the order of stabilisers in faceToEdges
-            //so when a stabiliser sends a message it needs to know its own place in this order so it can write to the right place
-            int q = edgeToFaces[4*threadID+i];  //message recipient 
-            int pos = 0;
-            while (pos < 4)
+            double m = 1.0;
+            for (int j=0; j<5; ++j)
             {
-                if (faceToEdges[4*q+pos] == threadID) break;    //find relative position of stabiliser in qubit's neighbour lookup
-                else ++pos;
+                 if (i!=j) m = m*tanh(variableMessages[5*threadID+j]/2);
             }
-            //write message to appropriate position in syndromeMessages
-            if (syndrome[threadID] == 0)
+            if (syndrome[threadID] == 0) m = 2*atanh(m);
+            else m = -2*atanh(m);
+
+            //FactorMessages is organised by which variable the messages are going to, not which factor they come from.
+            if (i < 4)
             {
-                syndromeMessages[8*q+(2*pos)] = m0;
-                syndromeMessages[8*q+(2*pos+1)] = m1;
+                //Each qubit recieves 4 messages (one per stabiliser) and these are in the same order as the order of stabilisers in faceToEdges
+                //so when a stabiliser sends a message it needs to know its own place in this order so it can write to the right place
+                int q = edgeToFaces[4*threadID+i];  //message recipient 
+                int pos = 0;
+                while (pos < 4)
+                {
+                    if (faceToEdges[4*q+pos] == threadID) break;    //find relative position of stabiliser in qubit's neighbour lookup
+                    else ++pos;
+                }
+                //write message to appropriate position in factorMessages
+                factorMessages[4*q+pos] = m;
             }
-            else if (syndrome[threadID] == 1)
+            else
             {
-                syndromeMessages[8*q+(2*pos)] = m1;
-                syndromeMessages[8*q+(2*pos+1)] = m0;
+                //measurement error variables have only one neighbour so recieve only one message
+                factorMessages[4*N+threadID] = m;
             }
         }
     }
 }
 
 __global__
-void updateQubitMessages(int* lookup, float* qubitMessages, float* syndromeMessages, int* faceToEdges, int* edgeToFaces, float p)
+void updateVariableMessages(int* lookup, double* variableMessages, double* factorMessages, int* faceToEdges, int* edgeToFaces, double llr0)
 {
-    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
+    //One thread per qubit
+    //don't need threads for measurement error varaibles nodes
+    //because messages from these don't change as they only have one neighbour
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; 
     if (lookup[threadID] == 1)
     {
-        float nMessages[8];  //messages from neighbouring stabilisers
-        for (int i=0; i<8; ++i) nMessages[i] = syndromeMessages[8*threadID+i];
-        int seq[12] = {1,2,3,0,2,3,0,1,3,0,1,2};    //as above
+        //qubit messages
         for (int i=0; i<4; ++i)
         {
-            float m0 = (1-p)*nMessages[2*seq[3*i]]*nMessages[2*seq[3*i+1]]*nMessages[2*seq[3*i+2]];
-            float m1 = p*nMessages[2*seq[3*i]+1]*nMessages[2*seq[3*i+1]+1]*nMessages[2*seq[3*i+2]+1];
-            //renormalise
-            float tot = m0 + m1;
-            m0 = m0/tot;
-            m1 = m1/tot;
-            //qubitMessages is organised by which stabiliser the messages are going to 
-            //(in the same way that syndrome messages is organised by qubits) 
+            double m = llr0;
+            for (int j=0; j<4; ++j)
+            {
+                if (i!=j) m = m + factorMessages[4*threadID+j];
+            }
+            //variableMessages is organised by which factor the messages are going to 
+            //(in the same way that factorMessages is organised by variables) 
             //so we have to do the same process as above to find the right place to write the messages
-            //Even though these probabilities are normalised to sum to 1 (and so it is redundant to store them both)
-            //we store them both anyway because it is helpful to be able to retrieve either one directly 
-            //without conditional calculations when calculating the syndrome messages
             int s = faceToEdges[4*threadID+i];
             int pos = 0;
             while (pos < 4)
@@ -224,41 +220,88 @@ void updateQubitMessages(int* lookup, float* qubitMessages, float* syndromeMessa
                 if (edgeToFaces[4*s+pos] == threadID) break;
                 else ++pos;
             }
-            qubitMessages[8*s+(2*pos)] = m0;
-            qubitMessages[8*s+(2*pos+1)] = m1;
+            variableMessages[5*s+pos] = m;    //every 5th position is for measurement error variable messages so skip these
         }
     }
 }
 
+//Joint function to calculate all marginals at once. More efficient than doing separately when running pure BP
 __global__
-void calcMarginals(int* lookup, float* qubitMarginals, float* syndromeMessages, float p)
+void calcMarginals(int* qLookup, int* sLookup, double* qubitMarginals, double* stabMarginals, double* factorMessages, double llr0, double llrq0, int N)
 {
-    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
+    //First calculates a qubit error marginal for qubit i
+    //and then calculates a measurement error marginal for stabiliser j
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; 
+    //qubit error marginals
+    if (qLookup[threadID] == 1)
+    {
+        double m = llr0;
+        for (int i=0; i<4; ++i) m = m + factorMessages[4*threadID+i];
+        qubitMarginals[threadID] = m;
+    }
+    //measurement error marginals
+    if (sLookup[threadID] == 1)
+    {
+        stabMarginals[threadID] = llrq0 + factorMessages[4*N+threadID];
+    }
+}
+
+//Separate functions for calculating qubit error and measurement error marginals separately. More efficient when running hybrid bp-flip
+__global__
+void calcQubitMarginals(int* lookup, double* qubitMarginals, double* factorMessages, double llr0)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; 
     if (lookup[threadID] == 1)
     {
-        float m0 = (1-p);
-        float m1 = p;
-        for (int i=0; i<4; ++i)
-        {
-            m0 = m0*syndromeMessages[8*threadID+2*i];
-            m1 = m1*syndromeMessages[8*threadID+2*i+1];
-        }
-        //renormalise
-        float tot = m0 + m1;
-        //only store the probability of an error here
-        m1 = m1/tot;
-        qubitMarginals[threadID] = m1;
+        double m = llr0;
+        for (int i=0; i<4; ++i) m = m + factorMessages[4*threadID+i];
+        qubitMarginals[threadID] = m;
     }
 }
 
 __global__
-void bpCorrection(int* lookup, int* qubits, float* qubitMarginals)
+void calcStabMarginals(int* lookup, double* stabMarginals, double* factorMessages, double llrq0, int N)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x;
+    if (lookup[threadID] == 1)
+    {
+        stabMarginals[threadID] = llrq0 + factorMessages[4*N+threadID];
+    }
+}
+
+__global__
+void bpSyndromeCorrection(int* lookup, int* syndrome, double* factorMessages, double* stabMarginals, int* edgeToFaces, int* faceToEdges, int N)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //one thread per stabiliser
+    if (lookup[threadID] == 1)
+    {
+        if (stabMarginals[threadID] < 0) 
+        {
+            syndrome[threadID] = syndrome[threadID] ^ 1;
+            //invert previously calculated factor messages
+            for (int i=0; i<4; ++i)
+            {
+                int qubit = edgeToFaces[4*threadID+i];
+                int pos = 0;
+                while (pos < 4)
+                {
+                    if (faceToEdges[4*qubit+pos] == threadID) break;
+                    else ++pos;
+                }
+                factorMessages[4*qubit+pos] = -1*factorMessages[4*qubit+pos];
+            }
+            factorMessages[4*N+threadID] = -1*factorMessages[4*N+threadID];
+        }
+    }
+}
+
+__global__
+void bpCorrection(int* lookup, int* qubits, double* qubitMarginals)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //one thread per qubit
     if (lookup[threadID] == 1)
     {
-        //Don't need to update the syndrome here because this is the final step of the calculation
-        if (qubitMarginals[threadID] > 0.5) qubits[threadID] = qubits[threadID] ^ 1;
+        if (qubitMarginals[threadID] < 0) qubits[threadID] = qubits[threadID] ^ 1;
     }
 }
 
