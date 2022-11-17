@@ -8,22 +8,23 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc != 12)
+    if (argc != 13)
     {
         std::cout << "Error: invalid number of arguments\n";
     }
     
     int L = std::atoi(argv[1]);          //lattice size
-    double pLower = std::atof(argv[2]);   //lower value for error probability p
-    double pUpper = std::atof(argv[3]);   //upper value for error probability p
+    double pLower = std::atof(argv[2]);  //lower value for error probability p
+    double pUpper = std::atof(argv[3]);  //upper value for error probability p
     int nps = std::atoi(argv[4]);        //number of values for p in range pLower <= p <= pUpper
-    double alpha = std::atof(argv[5]);    //measurement error probability q = alpha*p
+    double alpha = std::atof(argv[5]);   //measurement error probability q = alpha*p
     int runs = std::atoi(argv[6]);       //number of repeats of simulation
     int cycles = std::atoi(argv[7]);     //code cycles per simulation
-    int iters = std::atoi(argv[8]);      //decoding iterations per code cycle
+    int bpIters = std::atoi(argv[8]);    //BP iterations per code cycle
     int useFlip = std::atoi(argv[9]);    //use flip in decoding? (0=pure BP, 1=hybrid BP-flip)
-    int pfreq = std::atoi(argv[10]);     //apply pFlip instead of flip every pfreq applications
-    char bounds = *argv[11];             //open ('o') or closed ('c') boundary conditions
+    int flipIters = std:atoi(argv[10]);  //flip iterations per code cycle
+    int pfreq = std::atoi(argv[11]);     //apply pFlip instead of flip every pfreq applications
+    char bounds = *argv[12];             //open ('o') or closed ('c') boundary conditions
 
     int N = 3*L*L*L; //number of lattice faces/edges (= number of qubits/edges if there are no boundaries)
 
@@ -110,45 +111,30 @@ int main(int argc, char *argv[])
                 initVariableMessages<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_variableMessages, llr0, llrq0);    //prepare initial distribution for BP
                 cudaDeviceSynchronize();
                         
-                for (int iter=0; iter<iters; ++iter)  
+                //BP
+                for (int iter=0; iter<bpIters; ++iter)  
                 {
-                    if (useFlip == 0 || iter == iters-1)
+                    updateFactorMessages<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_variableMessages, d_syndrome, 
+                                                                d_factorMessages, d_edgeToFaces, d_faceToEdges, N);
+                    cudaDeviceSynchronize();
+                    updateVariableMessages<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_variableMessages, d_factorMessages, 
+                                                                                d_faceToEdges, d_edgeToFaces, llr0);
+                    cudaDeviceSynchronize();
+                }
+                calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_syndromeInclusionLookup, 
+                                                        d_qubitMarginals, d_stabMarginals, d_factorMessages, llr0, llrq0, N);
+                bpCorrection<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_syndromeInclusionLookup, d_qubits, 
+                                                      d_qubitMarginals, d_syndrome, d_stabMarginals, d_faceToEdges);
+                cudaDeviceSynchronize();
+                //flip
+                if (useFlip)
+                {
+                    for (int iter=0; iter<flipIters; ++iters)
                     {
-                        //pure BP
-                        updateFactorMessages<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_variableMessages, d_syndrome, 
-                                                                    d_factorMessages, d_edgeToFaces, d_faceToEdges, N);
-                        cudaDeviceSynchronize();
-                        updateVariableMessages<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_variableMessages, d_factorMessages, 
-                                                                                    d_faceToEdges, d_edgeToFaces, llr0);
-                        calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
-                                                             d_qubitMarginals, d_stabMarginals, d_factorMessages, llr0, llrq0, N);
-                        cudaDeviceSynchronize();
-                    }
-                    else if (useFlip == 1 && iter < iters-1)
-                    {
-                        //hybrid BP-flip
-                        updateFactorMessages<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_variableMessages, d_syndrome, 
-                                                                    d_factorMessages, d_edgeToFaces, d_faceToEdges, N);
-                        cudaDeviceSynchronize();
-                        calcStabMarginals<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_stabMarginals, d_factorMessages, llrq0, N);
-                        cudaDeviceSynchronize();
-                        bpSyndromeCorrection<<<(N+255)/256,256>>>(d_stabInclusionLookup, d_syndrome, 
-                                                                     d_factorMessages, d_stabMarginals, d_edgeToFaces, d_faceToEdges, N);
-                        cudaDeviceSynchronize();
-                        calcQubitMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubitMarginals, d_factorMessages, llr0);
-                        cudaDeviceSynchronize();
-                        if ((iter+1) % pfreq == 0) pflip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
-                                                                           d_qubits, d_syndrome, d_faceToEdges, d_edgeToFaces, 
-                                                                           d_variableMessages, d_qubitMarginals, d_states);
-                        else flip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
-                                                          d_qubits, d_syndrome, d_faceToEdges, d_edgeToFaces,
-                                                          d_variableMessages, d_qubitMarginals);
-                        cudaDeviceSynchronize();
-                    }
-                    if (iter == iters-1)
-                    {
-                        bpCorrection<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_qubits, d_qubitMarginals);
-                        cudaDeviceSynchronize();
+                        if (iter % pfreq == 0) pflip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_syndromeInclusionLookup, 
+                                                                                d_qubits, d_syndrome, d_faceToEdges, d_states);
+                        else flip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_syndromeInclusionLookup, 
+                                                                                d_qubits, d_syndrome, d_faceToEdges);
                     }
                 }
             }

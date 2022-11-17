@@ -57,7 +57,7 @@ void calculateSyndrome(int* lookup, int* qubits, int* syndrome, int* edgeToFaces
 
 //Regular deterministic flip
 __global__
-void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges, int* edgeToFaces, double* variableMessages, double* qubitMarginals)
+void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
     if (qLookup[threadID] == 1 && qubitMarginals[threadID] < 0)
@@ -75,14 +75,6 @@ void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdg
             {
                 int stab = faceToEdges[4*threadID+i];
                 if (sLookup[stab] == 1) atomicXor(&syndrome[stab],1);
-                //invert previously calculated qubit messages
-                int pos = 0;
-                while (pos < 4)
-                {
-                    if (edgeToFaces[4*stab+pos] == threadID) break;
-                    else ++pos;
-                }
-                variableMessages[5*stab+pos] = -1*variableMessages[5*stab+pos];
             }
         }
     }
@@ -90,8 +82,7 @@ void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdg
 
 //Probabilistic flip
 __global__
-void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges, 
-            int* edgeToFaces, double* variableMessages, double* qubitMarginals, curandState_t* states)
+void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges, curandState_t* states)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
     if (qLookup[threadID] == 1 && qubitMarginals[threadID] < 0)
@@ -108,14 +99,6 @@ void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEd
             {
                 int stab = faceToEdges[4*threadID+i];
                 if (sLookup[stab] == 1) atomicXor(&syndrome[stab],1);
-                //invert previously calculated qubit messages
-                int pos = 0;
-                while (pos < 4)
-                {
-                    if (edgeToFaces[4*stab+pos] == threadID) break;
-                    else ++pos;
-                }
-                variableMessages[5*stab+pos] = -1*variableMessages[5*stab+pos];
             }
         }
         else if (n == 2) 
@@ -127,13 +110,6 @@ void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEd
                 {
                     int stab = faceToEdges[4*threadID+i];
                     if (sLookup[stab] == 1) atomicXor(&syndrome[stab],1);
-                    int pos = 0;
-                    while (pos < 4)
-                    {
-                        if (edgeToFaces[4*stab+pos] == threadID) break;
-                        else ++pos;
-                    }
-                    variableMessages[5*stab+pos] = -1*variableMessages[5*stab+pos];
                 }
             }
         }
@@ -246,62 +222,24 @@ void calcMarginals(int* qLookup, int* sLookup, double* qubitMarginals, double* s
     }
 }
 
-//Separate functions for calculating qubit error and measurement error marginals separately. More efficient when running hybrid bp-flip
 __global__
-void calcQubitMarginals(int* lookup, double* qubitMarginals, double* factorMessages, double llr0)
+void bpCorrection(int* qLookup, int* sLookup, int* qubits, double* qubitMarginals, int* syndrome, double* stabMarginals, int* faceToEdges)
 {
-    int threadID = blockIdx.x * blockDim.x + threadIdx.x; 
-    if (lookup[threadID] == 1)
-    {
-        double m = llr0;
-        for (int i=0; i<4; ++i) m = m + factorMessages[4*threadID+i];
-        qubitMarginals[threadID] = m;
-    }
-}
-
-__global__
-void calcStabMarginals(int* lookup, double* stabMarginals, double* factorMessages, double llrq0, int N)
-{
+    //one thread per qubit/stabiliser (do one first then the other)
     int threadID = blockIdx.x * blockDim.x + threadIdx.x;
-    if (lookup[threadID] == 1)
+    if (sLookup[threadID] == 1)
     {
-        stabMarginals[threadID] = llrq0 + factorMessages[4*N+threadID];
+        if (stabMarginals[threadID] < 0) syndrome[threadID] = syndrome[threadID] ^ 1;
     }
-}
-
-__global__
-void bpSyndromeCorrection(int* lookup, int* syndrome, double* factorMessages, double* stabMarginals, int* edgeToFaces, int* faceToEdges, int N)
-{
-    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //one thread per stabiliser
-    if (lookup[threadID] == 1)
-    {
-        if (stabMarginals[threadID] < 0) 
-        {
-            syndrome[threadID] = syndrome[threadID] ^ 1;
-            //invert previously calculated factor messages
-            for (int i=0; i<4; ++i)
-            {
-                int qubit = edgeToFaces[4*threadID+i];
-                int pos = 0;
-                while (pos < 4)
-                {
-                    if (faceToEdges[4*qubit+pos] == threadID) break;
-                    else ++pos;
-                }
-                factorMessages[4*qubit+pos] = -1*factorMessages[4*qubit+pos];
-            }
-            factorMessages[4*N+threadID] = -1*factorMessages[4*N+threadID];
-        }
-    }
-}
-
-__global__
-void bpCorrection(int* lookup, int* qubits, double* qubitMarginals)
-{
-    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //one thread per qubit
-    if (lookup[threadID] == 1)
+    if (qLookup[threadID] == 1)
     {
         if (qubitMarginals[threadID] < 0) qubits[threadID] = qubits[threadID] ^ 1;
+        //update syndrome based on qubit flips
+        for (int i=0; i<4; ++i)
+        {
+            int e = faceToEdges[4*threadID+i];
+            syndrome[e] = syndrome[e] ^ 1;
+        }
     }
 }
 
