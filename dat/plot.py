@@ -59,7 +59,7 @@ def func(p,pth,v,a0,a1,a2):
     xdata = np.array(xdata)
     return ansatz(xdata,a0,a1,a2)
 
-dataset = "2022-10-27_1-2_o/"
+dataset = "2022-11-17_bp_30/"
 
 #process data
 data14 = np.array(consolidate_data(read_data_file(dataset+"data14.csv")))
