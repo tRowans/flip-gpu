@@ -10,7 +10,7 @@ void initVariableMessagesWrap(int N, int* lookup, double* variableMessages, doub
 void updateFactorMessagesWrap(int N, int* lookup, double* variableMessages, int* syndrome, double* factorMessages, int** edgeToFaces, int** faceToEdges);
 void updateVariableMessagesWrap(int N, int* lookup, double* variableMessages, double* factorMessages, int** faceToEdges, int** edgeToFaces, double llr0);
 void calcMarginalsWrap(int N, int* qLookup, int* sLookup, double* qubitMarginals, double* stabMarginals, double* factorMessages, double llr0, double llrq0);
-void bpCorrectionWrap(int N, int* qLookup, int* sLookup, int* qubits, double* qubtiMarginals, int* syndrome, double* stabMarginals, int* faceToEdges);
+void bpCorrectionWrap(int N, int* qLookup, int* sLookup, int* qubits, double* qubtiMarginals, int* syndrome, double* stabMarginals, int** faceToEdges);
 void measureLogicalsWrap(int N, int* lookup, int* qubits, int &nOdd, int L, char bounds);
 
 #endif

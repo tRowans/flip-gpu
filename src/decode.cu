@@ -60,7 +60,7 @@ __global__
 void flip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (qLookup[threadID] == 1 && qubitMarginals[threadID] < 0)
+    if (qLookup[threadID] == 1)
     {
         int n = 0;
         for (int i=0; i<4; ++i)
@@ -85,7 +85,7 @@ __global__
 void pflip(int* qLookup, int* sLookup, int* qubits, int* syndrome, int* faceToEdges, curandState_t* states)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (qLookup[threadID] == 1 && qubitMarginals[threadID] < 0)
+    if (qLookup[threadID] == 1)
     {
         int n = 0;
         for (int i=0; i<4; i++)
@@ -229,16 +229,19 @@ void bpCorrection(int* qLookup, int* sLookup, int* qubits, double* qubitMarginal
     int threadID = blockIdx.x * blockDim.x + threadIdx.x;
     if (sLookup[threadID] == 1)
     {
-        if (stabMarginals[threadID] < 0) syndrome[threadID] = syndrome[threadID] ^ 1;
+        if (stabMarginals[threadID] < 0) atomicXor(&syndrome[threadID],1);
     }
     if (qLookup[threadID] == 1)
     {
-        if (qubitMarginals[threadID] < 0) qubits[threadID] = qubits[threadID] ^ 1;
-        //update syndrome based on qubit flips
-        for (int i=0; i<4; ++i)
+        if (qubitMarginals[threadID] < 0) 
         {
-            int e = faceToEdges[4*threadID+i];
-            syndrome[e] = syndrome[e] ^ 1;
+            qubits[threadID] = qubits[threadID] ^ 1;
+            //update syndrome based on qubit flips
+            for (int i=0; i<4; ++i)
+            {
+                int e = faceToEdges[4*threadID+i];
+                atomicXor(&syndrome[e],1);
+            }
         }
     }
 }

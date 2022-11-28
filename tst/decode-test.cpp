@@ -649,7 +649,7 @@ TEST(calcMarginalsTest, CorrectOutput)
         else stabMarginalsExpected[i] = llr0 + m0;
     }
     calcMarginalsWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
-                                              qubitMarginals1, stabMarginals1, factorMessages, llr0, llr0);
+                                              qubitMarginals, stabMarginals, factorMessages, llr0, llr0);
     for (int i=0; i<3*6*6*6; ++i)
     {
         EXPECT_NEAR(qubitMarginals[i], qubitMarginalsExpected[i], 1e-15);
@@ -686,7 +686,7 @@ TEST(fullBPTest, OneError)
     calcMarginalsWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup,
                        qubitMarginals, stabMarginals, factorMessages, llr0, llr0);
     bpCorrectionWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
-                       qubits, qubitMarginals, syndrome, stabMarginals, faceToEdges);
+                       qubits, qubitMarginals, syndrome, stabMarginals, testCodeC.faceToEdges);
 
     for (int i=0; i<3*6*6*6; ++i)
     {
@@ -725,7 +725,7 @@ TEST(fullBPTest, TwoErrors)
     calcMarginalsWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup,
                       qubitMarginals, stabMarginals, factorMessages, llr0, llr0);
     bpCorrectionWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
-                      qubits, qubitMarginals, syndrome, stabMarginals, faceToEdges);
+                      qubits, qubitMarginals, syndrome, stabMarginals, testCodeC.faceToEdges);
 
     for (int i=0; i<3*6*6*6; ++i)
     {
@@ -767,7 +767,7 @@ TEST(fullBPTest, ThreeErrors)
     calcMarginalsWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
                         qubitMarginals, stabMarginals, factorMessages, llr0, llr0);
     bpCorrectionWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
-                      qubits, qubitMarginals, syndrome, stabMarginals, faceToEdges);
+                      qubits, qubitMarginals, syndrome, stabMarginals, testCodeC.faceToEdges);
 
     for (int i=0; i<3*6*6*6; ++i)
     {
@@ -810,7 +810,7 @@ TEST(fullBPTest, FourErrors)
     calcMarginalsWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
                        qubitMarginals, stabMarginals, factorMessages, llr0, llr0);
     bpCorrectionWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
-                      qubits, qubitMarginals, syndrome, stabMarginals, faceToEdges);
+                      qubits, qubitMarginals, syndrome, stabMarginals, testCodeC.faceToEdges);
 
     for (int i=0; i<3*6*6*6; ++i)
     {
@@ -842,7 +842,7 @@ TEST(fullBPTest, MeasurementError)
     calcMarginalsWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
                        qubitMarginals, stabMarginals, factorMessages, llr0, llr0);
     bpCorrectionWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
-                      qubits, qubitMarginals, syndrome, stabMarginals, faceToEdges);
+                      qubits, qubitMarginals, syndrome, stabMarginals, testCodeC.faceToEdges);
 
     for (int i=0; i<3*6*6*6; ++i)
     {
@@ -859,7 +859,7 @@ TEST(fullBPTest, MeasurementAndQubitError)
     double qubitMarginals[3*6*6*6] = {};
     double stabMarginals[3*6*6*6] = {};
 
-    qubit[0] = 1;
+    qubits[0] = 1;
     syndrome[0] = 1;
     syndrome[1] = 1;
     syndrome[4] = 1;
@@ -877,7 +877,7 @@ TEST(fullBPTest, MeasurementAndQubitError)
     calcMarginalsWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
                        qubitMarginals, stabMarginals, factorMessages, llr0, llr0);
     bpCorrectionWrap(3*6*6*6, testCodeC.qubitInclusionLookup, testCodeC.stabInclusionLookup, 
-                      qubits, qubitMarginals, syndrome, stabMarginals, faceToEdges);
+                      qubits, qubitMarginals, syndrome, stabMarginals, testCodeC.faceToEdges);
 
     for (int i=0; i<3*6*6*6; ++i)
     {

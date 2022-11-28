@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     int cycles = std::atoi(argv[7]);     //code cycles per simulation
     int bpIters = std::atoi(argv[8]);    //BP iterations per code cycle
     int useFlip = std::atoi(argv[9]);    //use flip in decoding? (0=pure BP, 1=hybrid BP-flip)
-    int flipIters = std:atoi(argv[10]);  //flip iterations per code cycle
+    int flipIters = std::atoi(argv[10]); //flip iterations per code cycle
     int pfreq = std::atoi(argv[11]);     //apply pFlip instead of flip every pfreq applications
     char bounds = *argv[12];             //open ('o') or closed ('c') boundary conditions
 
@@ -121,19 +121,19 @@ int main(int argc, char *argv[])
                                                                                 d_faceToEdges, d_edgeToFaces, llr0);
                     cudaDeviceSynchronize();
                 }
-                calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_syndromeInclusionLookup, 
+                calcMarginals<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
                                                         d_qubitMarginals, d_stabMarginals, d_factorMessages, llr0, llrq0, N);
-                bpCorrection<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_syndromeInclusionLookup, d_qubits, 
+                bpCorrection<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, d_qubits, 
                                                       d_qubitMarginals, d_syndrome, d_stabMarginals, d_faceToEdges);
                 cudaDeviceSynchronize();
                 //flip
                 if (useFlip)
                 {
-                    for (int iter=0; iter<flipIters; ++iters)
+                    for (int iter=0; iter<flipIters; ++iter)
                     {
-                        if (iter % pfreq == 0) pflip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_syndromeInclusionLookup, 
+                        if (iter % pfreq == 0) pflip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
                                                                                 d_qubits, d_syndrome, d_faceToEdges, d_states);
-                        else flip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_syndromeInclusionLookup, 
+                        else flip<<<(N+255)/256,256>>>(d_qubitInclusionLookup, d_stabInclusionLookup, 
                                                                                 d_qubits, d_syndrome, d_faceToEdges);
                     }
                 }
