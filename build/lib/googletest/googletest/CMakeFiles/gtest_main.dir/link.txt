@@ -1,2 +1,0 @@
-/opt/rh/devtoolset-8/root/usr/bin/ar qc ../../libgtest_maind.a  CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
-/opt/rh/devtoolset-8/root/usr/bin/ranlib ../../libgtest_maind.a

@@ -1,2 +1,0 @@
-/opt/rh/devtoolset-8/root/usr/bin/ar qc libflip_lib.a  CMakeFiles/flip_lib.dir/decode.cu.o CMakeFiles/flip_lib.dir/code.cpp.o
-/opt/rh/devtoolset-8/root/usr/bin/ranlib libflip_lib.a
