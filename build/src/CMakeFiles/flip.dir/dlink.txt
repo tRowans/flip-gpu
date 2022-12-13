@@ -1,1 +1,0 @@
-/usr/local/cuda-11.1/bin/nvcc  -g  -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink CMakeFiles/flip.dir/main.cu.o CMakeFiles/flip.dir/decode.cu.o CMakeFiles/flip.dir/code.cpp.o -o CMakeFiles/flip.dir/cmake_device_link.o  -L/usr/local/cuda-11.1/targets/x86_64-linux/lib/stubs 

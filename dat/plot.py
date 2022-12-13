@@ -59,7 +59,7 @@ def func(p,pth,v,a0,a1,a2):
     xdata = np.array(xdata)
     return ansatz(xdata,a0,a1,a2)
 
-dataset = "2022-11-28_bp_500c-30i/"
+dataset = "2022-12-13_bp-combine/"
 
 #process data
 data14 = np.array(consolidate_data(read_data_file(dataset+"data14.csv")))
@@ -67,8 +67,8 @@ data18 = np.array(consolidate_data(read_data_file(dataset+"data18.csv")))
 data24 = np.array(consolidate_data(read_data_file(dataset+"data24.csv")))
 data32 = np.array(consolidate_data(read_data_file(dataset+"data32.csv")))
 
-trunc_upper = len(data14[0])
-trunc_lower = 1
+trunc_upper = len(data14[0])-4
+trunc_lower = 2
 
 #save processed data
 write_data_file(dataset+"processed14.csv",data14,trunc_lower,trunc_upper)
