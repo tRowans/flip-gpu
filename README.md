@@ -1,4 +1,4 @@
-Source code and data for the simulations of flip, p-flip, BP, and p-BP appearing in [arXiv link]. 
+Source code and data for simulations of flip, p-flip, BP, and p-BP. 
 
 Code used for flip and p-flip sims can be found in branch "main".
 Code used for BP and p-BP sims can be found in branch "p-BP".
