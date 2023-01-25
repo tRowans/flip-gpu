@@ -99,13 +99,13 @@ int main(int argc, char *argv[])
                     //use pflip every pfreq applications, otherwise use regular flip
                     if (app % pfreq == 0)
                     {
-                        pflip<<<(code.N+255)/256,256>>>(code.N, code.M_Z, d_states, d_qubitsX, d_syndromeZ, d_bitToZChecks, code.maxBitDegreeZ);
-                        pflip<<<(code.N+255)/256,256>>>(code.N, code.M_X, d_states, d_qubitsZ, d_syndromeX, d_bitToXChecks, code.maxBitDegreeX);
+                        pflip<<<(code.N+255)/256,256>>>(code.N, d_states, d_qubitsX, d_syndromeZ, d_bitToZChecks, code.maxBitDegreeZ);
+                        pflip<<<(code.N+255)/256,256>>>(code.N, d_states, d_qubitsZ, d_syndromeX, d_bitToXChecks, code.maxBitDegreeX);
                     }
                     else
                     {
-                        flip<<<(code.N+255)/256,256>>>(code.N, code.M_Z, d_qubitsX, d_syndromeZ, d_bitToZChecks, code.maxBitDegreeZ);
-                        flip<<<(code.N+255)/256,256>>>(code.N, code.M_X, d_qubitsZ, d_syndromeX, d_bitToXChecks, code.maxBitDegreeX);
+                        flip<<<(code.N+255)/256,256>>>(code.N, d_qubitsX, d_syndromeZ, d_bitToZChecks, code.maxBitDegreeZ);
+                        flip<<<(code.N+255)/256,256>>>(code.N, d_qubitsZ, d_syndromeX, d_bitToXChecks, code.maxBitDegreeX);
                     }
                     cudaDeviceSynchronize();
                 }
@@ -113,18 +113,18 @@ int main(int argc, char *argv[])
 
             cudaMemcpy(qubitsX, d_qubitsX, code.N*sizeof(int), cudaMemcpyDeviceToHost);
             cudaMemcpy(syndromeZ, d_syndromeZ, code.M_Z*sizeof(int), cudaMemcpyDeviceToHost);
-            std::cout << ps[i] << ",q,X";
+            std::cout << ps[i] << ',' << run << ",q,X";
             for (int j=0; j<code.N; ++j) std::cout << ',' << qubitsX[j];
             std::cout << '\n';
-            std::cout << ps[i] << ",s,Z";
+            std::cout << ps[i] << ',' << run << ",s,Z";
             for (int j=0; j<code.M_Z; ++j) std::cout << ',' << syndromeZ[j];
             std::cout << '\n';
             cudaMemcpy(qubitsZ, d_qubitsZ, code.N*sizeof(int), cudaMemcpyDeviceToHost);
             cudaMemcpy(syndromeX, d_syndromeX, code.M_X*sizeof(int), cudaMemcpyDeviceToHost);
-            std::cout << ps[i] << ",q,Z";
+            std::cout << ps[i] << ',' << run << ",q,Z";
             for (int j=0; j<code.N; ++j) std::cout << ',' << qubitsZ[j];
             std::cout << '\n';
-            std::cout << ps[i] << ",s,X";
+            std::cout << ps[i] << ',' << run << ",s,X";
             for (int j=0; j<code.M_X; ++j) std::cout << ',' << syndromeX[j];
             std::cout << '\n';
         }

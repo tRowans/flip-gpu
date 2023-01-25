@@ -52,7 +52,7 @@ void flipWrap(int N, int M, int* qubits, int* syndrome, int** bitToChecks, int m
     cudaMemcpy(d_qubits, qubits, N*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_syndrome, syndrome, M*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_bitToChecks, bitToChecks[0], maxBitDegree*N*sizeof(int), cudaMemcpyHostToDevice);
-    flip<<<(N+255)/256,256>>>(N, M, d_qubits, d_syndrome, d_bitToChecks, maxBitDegree);
+    flip<<<(N+255)/256,256>>>(N, d_qubits, d_syndrome, d_bitToChecks, maxBitDegree);
     cudaMemcpy(qubits, d_qubits, N*sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(syndrome, d_syndrome, M*sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(d_qubits);
@@ -72,7 +72,7 @@ void pflipWrap(int N, int M, unsigned int seed, int* qubits, int* syndrome, int*
     curandState_t *d_states;
     cudaMalloc(&d_states, N*sizeof(curandState_t));
     createStates<<<(N+255)/256,256>>>(N, seed, d_states);
-    pflip<<<(N+255)/256,256>>>(N, M, d_states, d_qubits, d_syndrome, d_bitToChecks, maxBitDegree);
+    pflip<<<(N+255)/256,256>>>(N, d_states, d_qubits, d_syndrome, d_bitToChecks, maxBitDegree);
     cudaMemcpy(qubits, d_qubits, N*sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(syndrome, d_syndrome, M*sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(d_qubits);

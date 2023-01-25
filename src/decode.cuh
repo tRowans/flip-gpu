@@ -12,9 +12,9 @@ __global__ void arrayErrors(int maxIndex, curandState_t* states, int* errorTarge
 
 __global__ void depolErrors(int N, curandState_t* states, int* qubitsX, int* qubitsZ, float errorProb);
 
-__global__ void flip(int N, int M, int* qubits, int* syndrome, int* bitToChecks, int maxBitDegree);
+__global__ void flip(int N, int* qubits, int* syndrome, int* bitToChecks, int maxBitDegree);
 
-__global__ void pflip(int N, int M, curandState_t* states, int* qubits, int* syndrome, int* bitToChecks, int maxBitDegree);
+__global__ void pflip(int N, curandState_t* states, int* qubits, int* syndrome, int* bitToChecks, int maxBitDegree);
 
 __global__ void calculateSyndrome(int M, int* qubits, int* syndrome, int* checkToBits, int maxCheckDegree);
 

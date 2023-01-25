@@ -1,23 +1,23 @@
 #include "code.h"
 #include "decode.cuh"
 
+//----------GENERAL----------
+
 __global__
-void createStates(int N, unsigned int seed, curandState_t* states)
+void createStates(int maxIndex, unsigned int seed, curandState_t* states)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per state
-    //Don't need to use the lookups here b.c. it doesn't matter if we create too many states
-    if (threadID < N)
+    if (threadID < maxIndex)
     {
         curand_init(seed, threadID, 0, &states[threadID]);
     }
 }
 
 __global__
-void wipeArray(int N, int* array) 
+void wipeArray(int maxIndex, int* array) 
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per array element
-    //Don't need lookups here either
-    if (threadID < N) array[threadID] = 0;
+    if (threadID < maxIndex) array[threadID] = 0;
 }
 
 //This works for qubit or syndrome errors
@@ -37,7 +37,7 @@ void arrayErrors(int maxIndex, curandState_t* states, int* errorTarget, float er
 }
 
 __global__
-void depolErrors(int N, curandState_t* states, int* qubitsX, int* qubitsZ, float errorProb)
+void depolErrors(int nQubits, curandState_t* states, int* qubitsX, int* qubitsZ, float errorProb)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x;
     if (threadID < N)
@@ -56,34 +56,44 @@ void depolErrors(int N, curandState_t* states, int* qubitsX, int* qubitsZ, float
     }
 }
 
+__global__
+void calculateSyndrome(int nChecks, int* qubits, int* syndrome, int* factorToVariables, int* factorDegrees, int maxFactorDegree)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per stabiliser
+    if (threadID < nChecks) //first nChecks elements of factorToVariables are stabilisers (others are metachecks)
+    {
+        int parity = 0;
+        for (int i=0; i<(factorDegrees[threadID]-1); ++i)   //-1 because the last one is a measurement error variable node
+        {
+            int bit = factorToVariables[maxFactorDegree*threadID + i]; 
+            if (qubits[bit] == 1) parity = parity ^ 1;
+            syndrome[threadID] = parity;
+        }
+    }
+}
+
+//----------FLIP----------
+
 //Regular deterministic flip
 __global__
-void flip(int N, int M, int* qubits, int* syndrome, int* bitToChecks, int maxBitDegree)
+void flip(int nQubits, int* qubits, int* syndrome, int* variableToFactors, int* variableDegrees, int maxVariableDegree)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (threadID < N)
+    if (threadID < nQubits)
     {
-        int totalChecks = 0;
         int unsatChecks = 0;
-        for (int i=0; i<maxBitDegree; ++i)
+        for (int i=0; i<variableDegrees[threadID]; ++i)
         {
-            int stab = bitToChecks[maxBitDegree*threadID+i];
-            if (stab != -1)
-            {
-                totalChecks++;
-                if (syndrome[stab] == 1) unsatChecks++;
-            }
+            int stab = variableToFactors[maxVariableDegree*threadID+i];
+            if (syndrome[stab] == 1) unsatChecks++;
         }
-        if (unsatChecks > totalChecks/2)
+        if (unsatChecks > variableDegrees[threadID]/2)
         {
             qubits[threadID] = qubits[threadID] ^ 1;
-            for (int i=0; i<maxBitDegree; ++i)
+            for (int i=0; i<variableDegrees[threadID]; ++i)
             {
-                int stab = bitToChecks[maxBitDegree*threadID+i];
-                if (stab != -1 && stab < M)
-                {
-                    atomicXor(&syndrome[stab],1);
-                }
+                int stab = variableToFactors[maxVariableDegree*threadID+i];
+                atomicXor(&syndrome[stab],1);
             }
         }
     }
@@ -91,67 +101,113 @@ void flip(int N, int M, int* qubits, int* syndrome, int* bitToChecks, int maxBit
 
 //Probabilistic flip
 __global__
-void pflip(int N, int M, curandState_t* states, int* qubits, int* syndrome, int* bitToChecks, int maxBitDegree)
+void pflip(int nQubits, curandState_t* states, int* qubits, int* syndrome, int* variableToFactors, int* variableDegrees, int maxVariableDegree)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
-    if (threadID < N)
+    if (threadID < nQubits)
     {
-        int totalChecks = 0;
         int unsatChecks = 0;
-        for (int i=0; i<maxBitDegree; ++i)
+        for (int i=0; i<variableDegrees[threadID]; ++i)
         {
-            int stab = bitToChecks[maxBitDegree*threadID+i];
-            if (stab != -1)
-            {
-                totalChecks++;
-                if (syndrome[stab] == 1) unsatChecks++;
-            }
+            int stab = variableToFactors[maxVariableDegree*threadID+i];
+            if (syndrome[stab] == 1) unsatChecks++;
         }
-        if (unsatChecks > totalChecks/2)
+        if (unsatChecks > variableDegrees[threadID]/2)
         {
             qubits[threadID] = qubits[threadID] ^ 1;
-            for (int i=0; i<maxBitDegree; ++i)
+            for (int i=0; i<variableDegrees[threadID]; ++i)
             {
-                int stab = bitToChecks[maxBitDegree*threadID+i];
-                if (stab != -1 && stab < M)
-                {
-                    atomicXor(&syndrome[stab],1);
-                }
+                int stab = variableToFactors[maxVariableDegree*threadID+i];
+                atomicXor(&syndrome[stab],1);
             }
         }
-        else if (static_cast<float>(unsatChecks) == static_cast<float>(totalChecks)/2)
+        else if (static_cast<float>(unsatChecks) == static_cast<float>(variableDegrees[threadID])/2)
         {
             if (curand_uniform(&states[threadID]) < 0.5)
             {
                 qubits[threadID] = qubits[threadID] ^ 1;
-                for (int i=0; i<maxBitDegree; ++i)
+                for (int i=0; i<variableDegrees[threadID]; ++i)
                 {
-                    int stab = bitToChecks[maxBitDegree*threadID + i];
-                    if (stab != -1 && stab < M)
-                    {
-                        atomicXor(&syndrome[stab],1);
-                    }
+                    int stab = variableToFactors[maxVariableDegree*threadID + i];
+                    atomicXor(&syndrome[stab],1);
                 }
             }
         }
     }
 }
 
+//----------BP----------
+
 __global__
-void calculateSyndrome(int M,  int* qubits, int* syndrome, int* checkToBits, int maxCheckDegree)
+void initVariableMessages(int M, int nChecks, double* variableMessages, int* factorDegrees, int maxFactorDegree, double llr0, double llrq0)
 {
-    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per stabiliser
-    if (threadID < M)
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per factor
+    if (threadID < nChecks) //factor is a stabiliser
     {
-        int parity = 0;
-        for (int i=0; i<maxCheckDegree; ++i)
+        for (int i=0; i<(factorDegrees[threadID]-1); ++i) 
         {
-            int bit = checkToBits[maxCheckDegree*threadID + i]; 
-            if (bit != -1)
-            {
-                if (qubits[bit] == 1) parity = parity ^ 1;
-            }
-            syndrome[threadID] = parity;
+            variableMessages[maxFactorDegree*threadID+i] = llr0;    //all except last are qubit error variables
+        }
+        variableMessages[maxFactorDegree*threadID+factorDegrees[threadID]] = llrq0;  //last is a measurement error variable
+    }
+    else if (threadID < M) //factor is a metacheck
+    {
+        for (int i=0; i<factorDegrees[threadID]; ++i)
+        {
+            variableMessages[maxFactorDegree*threadID+i] = llrq0;   //all connected variables are for measurement errors
         }
     }
 }
+
+//Conditionals slow down GPU so faster to have separate functions for separate update rules 
+__global__
+void updateFactorMessagesTanh(int M, double* variableMessages, double* factorMessages, int* syndrome, 
+        int* factorToVariables, int* factorDegrees, int maxFactorDegree, int* factorToPos, int maxVariableDegree)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per factor 
+    int degree = factorDegrees[threadID]
+    if (threadID < M)
+    {
+        for (int i=0; i<degree; ++i)
+        {
+            double m = 1.0;
+            //if statements are bad for GPU so this is better than one loop that checks (i!=j)
+            for (int j=0; j<i; ++j) m = m*tanh(variableMessages[maxFactorDegree*threadID+j]/2);
+            for (int j=i+1; j<degree; ++j) m = m*tanh(variableMessages[maxFactorDegree*threadID+j]/2);
+            m = (1-2*syndrome[threadID])*2*atanh(m);
+
+            //FactorMessages is organised by which variable the messages are going to, not which factor they come from. 
+            //Each variable recieves one message from each adjacent factor and these are in the same order as the order
+            //of factors in variableToFactors, so when a check sends a message it needs to know its own place in this order
+            //so it can write to the right place
+
+            int v = factorToVariables[maxFactorDegree*threadID+i]; //message recipient
+            int pos = factorToPos[maxFactorDegree*threadID+i];     //position in recipients variableToFactor map
+            factorMessages[maxVariableDegree*v+pos] = m;
+        }
+    }
+}
+
+__global__
+void updateFactorMessagesMinSum(int alpha, int M, double* variableMessages, double* factorMessages, int* syndrome,
+        int* factorToVariables, int* factorDegrees, int maxFactorDegree, int* factorToPos, int maxVariableDegree)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per factor
+    int degree = factorDegrees[threadID];
+    if (threadID < M)
+    {
+        for (int i=0; i<degree; ++i)
+        {
+            //MIN SUM RULE
+        }
+
+        int v = factorToVariables[maxFactorDegree*threadID+i]; //message recipient
+        int pos = factorToPos[maxFactorDegree*threadID+i];     //position in recipients variableToFactor map
+        factorMessages[maxVariableDegree*v+pos] = m;
+    }
+}
+
+}
+
+__global__
+void updateVariableMessages(nvar)
