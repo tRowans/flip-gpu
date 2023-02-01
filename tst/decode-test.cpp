@@ -7,13 +7,13 @@
 
 TEST(wipeArrayTest, CorrectOutput)
 {
-    int arr[3*6*6*6];
-    for (int i=0; i<3*6*6*6; ++i)
+    int arr[100];
+    for (int i=0; i<100; ++i)
     {
         arr[i] = 1;
     }
-    wipeArrayWrap(3*6*6*6, arr);
-    for(int i=0; i<3*6*6*6; ++i)
+    wipeArrayWrap(100, arr);
+    for(int i=0; i<100; ++i)
     {
         EXPECT_EQ(arr[i], 0);
     }
@@ -25,14 +25,14 @@ TEST(arrayErrorsTest, NonTrivialOutput)
 {
     //As always testing random functions is a pain 
     //so just check it does something
-    int qubits[3*6*6*6] = {};
-    int syndrome[3*6*6*6] = {};
+    int qubits[100] = {};
+    int syndrome[100] = {};
     std::random_device rd{};
-    arrayErrorsWrap(3*6*6*6, rd(), qubits, 0.5);
-    arrayErrorsWrap(3*6*6*6, rd(), syndrome, 0.5);
+    arrayErrorsWrap(100, rd(), qubits, 0.5);
+    arrayErrorsWrap(100, rd(), syndrome, 0.5);
     int totalQ = 0;
     int totalS = 0;
-    for (int i=0; i<3*6*6*6; ++i)
+    for (int i=0; i<100; ++i)
     {
         totalQ += qubits[i];
         totalS += syndrome[i];
@@ -42,20 +42,126 @@ TEST(arrayErrorsTest, NonTrivialOutput)
 }
 TEST(applyErrorsTest, ProbabilityOne)
 {
-    int qubits[3*6*6*6] = {};
-    int syndrome[3*6*6*6] = {};
+    int qubits[100] = {};
+    int syndrome[100] = {};
     std::random_device rd{};
-    arrayErrorsWrap(3*6*6*6, rd(), qubits, 1);
-    arrayErrorsWrap(3*6*6*6, rd(), syndrome, 1);
+    arrayErrorsWrap(100, rd(), qubits, 1);
+    arrayErrorsWrap(100, rd(), syndrome, 1);
     int totalQ = 0;
     int totalS = 0;
-    for (int i=0; i<3*6*6*6; ++i)
+    for (int i=0; i<100; ++i)
     {
         totalQ += qubits[i];
         totalS += syndrome[i];
     }
-    EXPECT_EQ(totalQ, 3*6*6*6);
-    EXPECT_EQ(totalS, 3*6*6*6);
+    EXPECT_EQ(totalQ, 100);
+    EXPECT_EQ(totalS, 100);
+}
+
+//------------------------------------------------------------
+
+TEST(depolErrorsTest, NonTrivialOutput)
+{
+    int qubitsX[100] = {};
+    int qubitsZ[100] = {};
+    std::random_device rd{};
+    depolErrorsWrap(100, rd(), qubitsX, qubitsZ, 0.5);
+    int totalQX = 0;
+    int totalQZ = 0;
+    for (int i=0; i<100; ++i)
+    {
+        totalQX += qubitsX[i];
+        totalQZ += qubitsZ[i];
+    }
+    EXPECT_NE(totalQX, 0);
+    EXPECT_NE(totalQZ, 0);
+}
+TEST(depolErrorsTest, ProbabilityOne)
+{  
+    int qubitsX[100] = {};
+    int qubitsZ[100] = {};
+    std::random_device rd{};
+    depolErrorsWrap(100, rd(), qubitsX, qubitsZ, 1);
+    int totalQX = 0;
+    int totalQZ = 0;
+    int totalEither = 0;
+    for (int i=0; i<100; ++i)
+    {
+        totalQX += qubitsX[i];
+        totalQZ += qubitsZ[i];
+        totalEither += (qubitsX[i] || qubitsZ[i]);
+    }
+    EXPECT_NE(totalQX, 0);
+    EXPECT_NE(totalQZ, 0);
+    EXPECT_EQ(totalEither, 1);
+}
+
+//------------------------------------------------------------
+
+//qubits should never change from this function
+TEST(calculateSyndromeTest, surface)
+{
+    int qubitsX[4] = {1,0,0,0};
+    int qubitsZ[4] = {1,0,0,0};
+    int syndromeZ[2] = {};
+    int syndromeX[1] = {};
+    int qubitsXExpected[4] = {1,0,0,0};
+    int qubitsZExpected[4] = {1,0,0,0};
+    int syndromeZExpected[2] = {1,0};
+    int syndromeXExpected[1] = {1};
+    calculateSyndromeWrap(2, 4, qubitsX, syndromeZ, fourqsurface.factorToVariablesZ, fourqsurface.maxFactorDegreeZ);
+    calculateSyndromeWrap(1, 4, qubitsZ, syndromeX, fourqsurface.factorToVariablesX, fourqsurface.maxFactorDegreeX);
+    for (int i=0; i<4; ++i)
+    {
+        EXPECT_EQ(qubitsX[i], qubitsXExpected[i]);
+        EXPECT_EQ(qubitsZ[i], qubitsZExpected[i]);
+    }
+    EXPECT_EQ(syndromeZ[0], syndromeZExpected[0]);
+    EXPECT_EQ(syndromeZ[1], syndromeZExpected[1]);
+    EXPECT_EQ(syndromeX[0], syndromeXExpected[0]);
+}
+TEST(calculateSyndromeTest, colour2D)
+{
+    int qubitsX[7] = {0,0,0,0,1,0,0};
+    int qubitsZ[7] = {0,1,0,0,0,0,0};
+    int syndromeZ[3] = {};
+    int syndromeX[3] = {};
+    int qubitsXExpected[7] = {0,0,0,0,1,0,0};
+    int qubitsZExpected[7] = {0,1,0,0,0,0,0};
+    int syndromeZExpected[3] = {1,1,1};
+    int syndromeXExpected[3] = {1,1,0};
+    calculateSyndromeWrap(3, 7, qubitsX, syndromeZ, sevenqcolour.factorToVariablesZ, sevenqcolour.maxFactorDegreeZ);
+    calculateSyndromeWrap(3, 7, qubitsZ, syndromeX, sevenqcolour.factorToVariablesX, sevenqcolour.maxFactorDegreeX);
+    for (int i=0; i<7; ++i)
+    {
+        EXPECT_EQ(qubitsX[i], qubitsXExpected[i]);
+        EXPECT_EQ(qubitsZ[i], qubitsZExpected[i]);
+    }
+    for (int i=0; i<3; ++i)
+    {
+        EXPECT_EQ(syndromeZ[i], syndromeZExpected[i]);
+        EXPECT_EQ(syndromeX[i], syndromeXExpected[i]);
+    }
+}
+TEST(calculateSyndromeTest, colour3D)
+{
+    int qubitsX[8] = {0,0,1,0,0,0,0,0};
+    int qubitsZ[8] = {1,0,0,0,0,0,0,0};
+    int syndromeZ[9] = {};
+    int syndromeX[1] = {};
+    int qubitsXExpected[8] = {0,0,1,0,0,0,0,0};
+    int qubitsZExpected[8] = {1,0,0,0,0,0,0,0};
+    int syndromeZExpected[9] = {1,0,1,0,1,0,0,0,0};
+    int syndromeXExpected[1] = {1};
+    calculateSyndromeWrap(9, 8, qubitsX, syndromeZ, eightq3Dcolour.factorToVariablesZ, eightq3Dcolour.maxFactorDegreeZ);
+    calculateSyndromeWrap(1, 8, qubitsZ, syndromeX, eightq3Dcolour.factorToVariablesX, eightq3Dcolour.maxFactorDegreeX);
+    for (int i=0; i<8; ++i)
+    {
+        EXPECT_EQ(qubitsX[i], qubitsXExpected[i]);
+        EXPECT_EQ(qubitsZ[i], qubitsZExpected[i]);
+    }
+    for (int i=0; i<9; ++i) EXPECT_EQ(syndromeZ[i], syndromeZExpected[i]);
+    EXPECT_EQ(syndromeX[0], syndromeXExpected[0]);
 }
 
 //------------------------------------------------------------
@@ -70,8 +176,8 @@ TEST(flipTest, surface)
     int qubitsZExpected[4] = {0,1,1,1};
     int syndromeZExpected[2] = {1,0};
     int syndromeXExpected[1] = {1};
-    flipWrap(4, 2, qubitsX, syndromeZ, fourqsurface.bitToZChecks, fourqsurface.maxBitDegreeZ);
-    flipWrap(4, 1, qubitsZ, syndromeX, fourqsurface.bitToXChecks, fourqsurface.maxBitDegreeX);
+    flipWrap(2, 4, qubitsX, syndromeZ, fourqsurface.variableToFactorsX, fourqsurface.maxVariableDegreeX);
+    flipWrap(1, 4, qubitsZ, syndromeX, fourqsurface.variableToFactorsZ, fourqsurface.maxVariableDegreeZ);
     for (int i=0; i<4; ++i)
     {
         EXPECT_EQ(qubitsX[i], qubitsXExpected[i]);
@@ -91,8 +197,8 @@ TEST(flipTest, colour)
     int qubitsZExpected[7] = {1,0,1,0,1,0,0};
     int syndromeZExpected[3] = {1,1,1};
     int syndromeXExpected[3] = {0,0,1};
-    flipWrap(7, 3, qubitsX, syndromeZ, sevenqcolour.bitToZChecks, sevenqcolour.maxBitDegreeZ);
-    flipWrap(7, 3, qubitsZ, syndromeX, sevenqcolour.bitToXChecks, sevenqcolour.maxBitDegreeX);
+    flipWrap(3, 7, qubitsX, syndromeZ, sevenqcolour.variableToFactorsX, sevenqcolour.maxVariableDegreeX);
+    flipWrap(3, 7, qubitsZ, syndromeX, sevenqcolour.variableToFactorsZ, sevenqcolour.maxVariableDegreeZ);
     for (int i=0; i<7; ++i)
     {
         EXPECT_EQ(qubitsX[i], qubitsXExpected[i]);
@@ -104,6 +210,8 @@ TEST(flipTest, colour)
         EXPECT_EQ(syndromeX[i], syndromeXExpected[i]);
     }
 }
+
+//GOT TO HERE!!!
 
 //------------------------------------------------------------
 
@@ -175,48 +283,4 @@ TEST(pflipTest, colour)
 
 //------------------------------------------------------------
 
-//qubits should never change from this function
-TEST(calculateSyndromeTest, surface)
-{
-    int qubitsX[4] = {1,0,0,0};
-    int qubitsZ[4] = {1,0,0,0};
-    int syndromeZ[2] = {};
-    int syndromeX[1] = {};
-    int qubitsXExpected[4] = {1,0,0,0};
-    int qubitsZExpected[4] = {1,0,0,0};
-    int syndromeZExpected[2] = {1,0};
-    int syndromeXExpected[1] = {1};
-    calculateSyndromeWrap(4, 2, qubitsX, syndromeZ, fourqsurface.zCheckToBits, fourqsurface.maxCheckDegreeZ);
-    calculateSyndromeWrap(4, 1, qubitsZ, syndromeX, fourqsurface.xCheckToBits, fourqsurface.maxCheckDegreeX);
-    for (int i=0; i<4; ++i)
-    {
-        EXPECT_EQ(qubitsX[i], qubitsXExpected[i]);
-        EXPECT_EQ(qubitsZ[i], qubitsZExpected[i]);
-    }
-    EXPECT_EQ(syndromeZ[0], syndromeZExpected[0]);
-    EXPECT_EQ(syndromeZ[1], syndromeZExpected[1]);
-    EXPECT_EQ(syndromeX[0], syndromeXExpected[0]);
-}
-TEST(calculateSyndromeTest, colour)
-{
-    int qubitsX[7] = {0,0,0,0,1,0,0};
-    int qubitsZ[7] = {0,1,0,0,0,0,0};
-    int syndromeZ[3] = {};
-    int syndromeX[3] = {};
-    int qubitsXExpected[7] = {0,0,0,0,1,0,0};
-    int qubitsZExpected[7] = {0,1,0,0,0,0,0};
-    int syndromeZExpected[3] = {1,1,1};
-    int syndromeXExpected[3] = {1,1,0};
-    calculateSyndromeWrap(7, 3, qubitsX, syndromeZ, sevenqcolour.zCheckToBits, sevenqcolour.maxCheckDegreeZ);
-    calculateSyndromeWrap(7, 3, qubitsZ, syndromeX, sevenqcolour.xCheckToBits, sevenqcolour.maxCheckDegreeX);
-    for (int i=0; i<7; ++i)
-    {
-        EXPECT_EQ(qubitsX[i], qubitsXExpected[i]);
-        EXPECT_EQ(qubitsZ[i], qubitsZExpected[i]);
-    }
-    for (int i=0; i<3; ++i)
-    {
-        EXPECT_EQ(syndromeZ[i], syndromeZExpected[i]);
-        EXPECT_EQ(syndromeX[i], syndromeXExpected[i]);
-    }
-}
+

@@ -29,7 +29,7 @@ void Code::getVariableDegrees(int M, int N, int* variableDegrees, int maxVariabl
     }
 }
 
-void Code::getCheckDegrees(int M, int N, int* factorDegrees, int maxFactorDegree, std::vector<std::vector<int>> &H)
+void Code::getFactorDegrees(int M, int N, int* factorDegrees, int maxFactorDegree, std::vector<std::vector<int>> &H)
 {
     maxFactorDegree = 0;
     for (int i=0; i<M; ++i)
@@ -47,6 +47,7 @@ void Code::buildVariableToFactors(int M, int N, int** variableToFactors, int max
     //-1s will get overwritten for all array spaces that represent valid variable -> factor mappings
     //and will persist elsewhere (i.e. if a given variable has degree < maxVariableDegree). 
     //No factor has index -1 so this lets us detect if we accidentally access an invalid array space
+    //and it is less annoying than having undefined elements in the array
     for (int j=0; j<N; ++j)
     {
         int factorNumber = 0;
@@ -78,8 +79,10 @@ void Code::buildFactorToVariables(int M, int N, int** factorToVariables, int max
     }
 }
 
-void Code::buildNodeToPos(int nNodes, int** nodeToPos, int* nodeDegrees, int** nodeToNeighbours, int* neighbourDegrees, int** neighbourToNodes)
+void Code::buildNodeToPos(int nNodes, int** nodeToPos, int* nodeDegrees, int** nodeToNeighbours, 
+                                int maxNodeDegree, int* neighbourDegrees, int** neighbourToNodes)
 {
+    for (int i=0; i<nNodes*maxNodeDegree; ++i) nodeToPos[0][i] = -1;
     for (int i=0; i<nNodes; ++i)
     {
         for (int j=0; j<nodeDegrees[i]; ++j)
@@ -105,20 +108,20 @@ Code::Code(std::string codename, int n)
    
     //Parity check matrix for BP has the form
     //
-    //   .     <-----------N------------>
-    //   .        <---n--->  <---m--->
+    //         <-----------N------------>
+    //            <---n--->  <---m--->
     // 
     //  ^  ^   |‾ |‾     ‾|  |‾     ‾| ‾|
     //  |  |   |  |       |  |       |  |
-    //  |. m   |  |   H   |  |   I   |  |
-    //  |. |   |  |       |  |       |  |
-    //  |. v   |  |_     _|  |_     _|  |
-    //  M.     |                        |
-    //  |. ^   |  |‾     ‾|  |‾     ‾|  |
-    //  |. |   |  |       |  |       |  |
-    //  |. x   |  |   0   |  |   C   |  |
-    //  |. |   |  |       |  |       |  |
-    //  v. v   |_ |_     _|  |_     _| _|
+    //  |  m   |  |   H   |  |   I   |  |
+    //  |  |   |  |       |  |       |  |
+    //  |  v   |  |_     _|  |_     _|  |
+    //  M      |                        |
+    //  |  ^   |  |‾     ‾|  |‾     ‾|  |
+    //  |  |   |  |       |  |       |  |
+    //  |  x   |  |   0   |  |   C   |  |
+    //  |  |   |  |       |  |       |  |
+    //  v  v   |_ |_     _|  |_     _| _|
     //
     //where: n = number of qubits
     //       m = number of checks

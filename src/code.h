@@ -49,7 +49,8 @@ class Code
         void getFactorDegrees(int M, int N, int* factorDegrees, int maxFactorDegree, std::vector<std::vector<int>> &H);
         void buildVariableToFactors(int M, int N, int** variableToFactors, int maxVariableDegree, std::vector<std::vector<int>> &H);
         void buildFactorToVariables(int M, int N, int** factorToVariables, int maxFactorDegree, std::vector<std::vector<int>> &H);
-        void buildNodeToPos(int nNodes, int** nodeToPos, int* nodeDegrees, int** nodeToNeighbours, int* neighbourDegrees, int** neighbourToNodes);
+        void buildNodeToPos(int nNodes, int** nodeToPos, int* nodeDegrees, int** nodeToNeighbours, 
+                                    int maxNodeDegree, int* neighbourDegrees, int** neighbourToNodes);
 
         
         Code(std::string codename, int n);
