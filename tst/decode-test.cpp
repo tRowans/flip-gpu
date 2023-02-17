@@ -187,7 +187,7 @@ TEST(flipTest, surface)
     EXPECT_EQ(syndromeZ[1], syndromeZExpected[1]);
     EXPECT_EQ(syndromeX[0], syndromeXExpected[0]);
 }
-TEST(flipTest, colour)
+TEST(flipTest, colour2D)
 {
     int qubitsX[7] = {0,0,0,0,1,0,0};
     int qubitsZ[7] = {0,1,0,0,0,0,0};
@@ -210,6 +210,28 @@ TEST(flipTest, colour)
         EXPECT_EQ(syndromeX[i], syndromeXExpected[i]);
     }
 }
+TEST(flipTest, colour3D)
+{
+    int qubitsX[8] = {0,0,1,0,0,0,0,0};
+    int qubitsZ[8] = {1,0,0,0,0,0,0,0};
+    int syndromeZ[9] = {1,0,1,0,1,0,0,0,0};
+    int syndromeX[1] = {1};
+    int qubitsXExpected[8] = {1,0,0,1,0,0,1,0};
+    int qubitsZExpected[8] = {0,1,1,1,1,1,1,1};
+    int syndromeZExpected[9] = {0,1,0,1,0,1,0,0,0};
+    int syndromeXExpected[1] = {1};
+    flipWrap(14, 9, 8, 6, qubitsX, syndromeZ, eightq3Dcolour.variableToFactorsX, 
+                 eightq3Dcolour.variableDegreesX, eightq3Dcolour.maxVariableDegree);
+    flipWrap(9, 1, 8, 1, qubitsZ, syndromeX, eightq3Dcolour.variableToFactorsZ,
+                 eightq3Dcolour.variableDegreesZ, eightq3Dcolour.maxVariableDegree);
+    for (int i=0; i<8; ++i)
+    {
+        EXPECT_EQ(qubitsX[i], qubitsXExpected[i]);
+        EXPECT_EQ(qubitsZ[i], qubitsZExpected[i]);
+    }
+    for (int i=0; i<9; ++j) EXPECT_EQ(syndromeZ
+
+
 
 //GOT TO HERE!!!
 
