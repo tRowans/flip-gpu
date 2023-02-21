@@ -8,8 +8,8 @@ TEST(readParityCheckMatrixTest, surface)
 {
     std::vector<std::vector<int>> H_X;
     std::vector<std::vector<int>> H_Z;
-    H_X = {{1,1,1,1}};
-    H_Z = {{1,0,1,0},{0,1,0,1}};
+    H_X = {{1,1,1,1,1}};
+    H_Z = {{1,0,1,0,1,0},{0,1,0,1,0,1}};
     EXPECT_EQ(H_X, fourqsurface.H_X);
     EXPECT_EQ(H_Z, fourqsurface.H_Z);
 }
@@ -17,12 +17,12 @@ TEST(readParityCheckMatrixTest, colour2D)
 {
     std::vector<std::vector<int>> H_X;
     std::vector<std::vector<int>> H_Z;
-    H_X = {{1,1,0,1,1,0,0},
-           {0,1,1,0,1,1,0},
-           {0,0,0,1,1,1,1}};
-    H_Z = {{1,1,0,1,1,0,0},
-           {0,1,1,0,1,1,0},
-           {0,0,0,1,1,1,1}};
+    H_X = {{1,1,0,1,1,0,0,1,0,0},
+           {0,1,1,0,1,1,0,0,1,0},
+           {0,0,0,1,1,1,1,0,0,1}};
+    H_Z = {{1,1,0,1,1,0,0,1,0,0},
+           {0,1,1,0,1,1,0,0,1,0},
+           {0,0,0,1,1,1,1,0,0,1}};
     EXPECT_EQ(H_X, sevenqcolour.H_X);
     EXPECT_EQ(H_Z, sevenqcolour.H_Z);
 }
@@ -50,8 +50,8 @@ TEST(getVariableDegreesTest, surface)
 {
     int variableDegreesX[4] = {1,1,1,1};
     int variableDegreesZ[4] = {1,1,1,1};
-    EXPECT_EQ(fourqsurface.maxBitDegreeX, 1);
-    EXPECT_EQ(fourqsurface.maxBitDegreeZ, 1);
+    EXPECT_EQ(fourqsurface.maxVariableDegreeX, 1);
+    EXPECT_EQ(fourqsurface.maxVariableDegreeZ, 1);
     for (int i=0; i<4; ++i)
     {
         EXPECT_EQ(fourqsurface.variableDegreesX[i], variableDegreesX[i]);
@@ -88,7 +88,7 @@ TEST(getFactorDegreesTest, surface)
     int factorDegreesZ[2] = {2,2};
     EXPECT_EQ(fourqsurface.maxFactorDegreeX, 4);
     EXPECT_EQ(fourqsurface.maxFactorDegreeZ, 2);
-    EXPECT_EQ(fourqsurface.factorDegreesX[0], factorDegrees[0]);
+    EXPECT_EQ(fourqsurface.factorDegreesX[0], factorDegreesX[0]);
     for (int i=0; i<2; ++i) EXPECT_EQ(fourqsurface.factorDegreesZ[i], factorDegreesZ[i]);
 }
 TEST(getFactorDegreesTest, colour2D)
@@ -99,14 +99,14 @@ TEST(getFactorDegreesTest, colour2D)
     EXPECT_EQ(sevenqcolour.maxFactorDegreeZ, 4);
     for (int i=0; i<3; ++i)
     {
-        EXPECT_EQ(sevenqcolour.factorDegreesX[i], factorDegrees[i]);
-        EXPECT_EQ(sevenqcolour.factorDegreesZ[i], factorDegrees[i]);
+        EXPECT_EQ(sevenqcolour.factorDegreesX[i], factorDegreesX[i]);
+        EXPECT_EQ(sevenqcolour.factorDegreesZ[i], factorDegreesZ[i]);
     }
 }
 TEST(getFactorDegreesTest, colour3D)
 {
     int factorDegreesX[1] = {8};
-    int factorDegreesZ[9] = {5,5,5,5,5,5,4,4,4,4};
+    int factorDegreesZ[9] = {5,5,5,5,5,5,4,4,4};
     EXPECT_EQ(eightq3Dcolour.maxFactorDegreeX, 8);
     EXPECT_EQ(eightq3Dcolour.maxFactorDegreeZ, 5);
     EXPECT_EQ(eightq3Dcolour.factorDegreesX[0], factorDegreesX[0]);
@@ -165,7 +165,7 @@ TEST(buildVariableToFactors, colour3D)
                                      {2,7,8},
                                      {3,7,8},
                                      {4,6,8},
-                                     {5,6,7}}
+                                     {5,6,7}};
     int variableToFactorsZ[8][1] = {{0},{0},{0},{0},{0},{0},{0},{0}};
     for (int i=0; i<14; ++i)
     {
@@ -309,7 +309,7 @@ TEST(buildNodeToPosTest, colour3D)
                               {2,2,2,2,-1}};
     for (int i=0; i<14; ++i)
     {
-        for (int j=0; j<3; ++j) EXPECT_EQ(eightq3Dcolour.variableToPosX[i][j], variableToPos[i][j]);
+        for (int j=0; j<3; ++j) EXPECT_EQ(eightq3Dcolour.variableToPosX[i][j], variableToPosX[i][j]);
     }
     for (int i=0; i<8; ++i)
     {

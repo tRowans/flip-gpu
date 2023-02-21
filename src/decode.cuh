@@ -8,8 +8,6 @@ __global__ void createStates(int maxIndex, unsigned int seed, curandState_t* sta
 
 __global__ void wipeArray(int maxIndex, int* array);
 
-__global__ void arrayErrors(int maxIndex, curandState_t* states, int* errorTarget, float errorProb);
-
 __global__ void depolErrors(int nQubits, curandState_t* states, int* variablesX, int* variablesZ, float errorProb);
 
 __global__ void measErrors(int nQubits, int nChecks, curandState_t* states, int* variables, float errorProb);
@@ -19,7 +17,7 @@ __global__ void calculateSyndrome(int M, int* variables, int* factors, int* fact
 __global__ void flip(int nQubits, int* variables, int* factors, int* variableToFactors, int* variableDegrees, int maxVariableDegree);
 
 __global__ void pflip(int nQubits, curandState_t* states, int* variables, int* factors, 
-        int* variableToFactors, int* variableDegrees int maxVariableDegree);
+        int* variableToFactors, int* variableDegrees, int maxVariableDegree);
 
 __global__ void initVariableMessages(int M, int nChecks, double* variableMessages, 
         int* factorDegrees, int maxFactorDegree, double llrp0, double llrq0);
@@ -33,7 +31,8 @@ __global__ void updateFactorMessagesMinSum(int alpha, int M, double* variableMes
 __global__ void updateVariableMessages(int N, int nQubits, double* factorMessages, double* variableMessages, int* variableToFactors, 
         int* variableDegrees, int maxVariableDegree, int* variableToPos, int maxFactorDegree, int llrp0, int llrq0);
 
-__global__ void calcMarginals(int N, int nQubits, double* marginals, double* factorMessages, double llrp0, double llrq0);
+__global__ void calcMarginals(int N, int nQubits, double* marginals, double* factorMessages, 
+        int* variableDegrees, int maxVariableDegree, double llrp0, double llrq0);
 
 __global__ void bpCorrection(int nQubits, int nChecks, double* marginals, int* variables, int* factors, 
         int* variableToFactors, int* variableDegrees, int maxVariableDegree);

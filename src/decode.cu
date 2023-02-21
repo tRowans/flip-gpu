@@ -46,10 +46,11 @@ void measErrors(int nQubits, int nChecks, curandState_t* states, int* variables,
     int threadID = blockIdx.x * blockDim.x + threadIdx.x;
     if (threadID < nChecks)
     {
-        if (curand_uniform(&states[threadID]) < errorProb)
-        {
-            variables[threadID+nQubits] = variables[threadID+nQubits] ^ 1;
-        }
+        //This is not a bit flip of the original measurement error value unlike qubit error variables
+        //because a qubit error vector {0,1,0,...} should persist between measurement rounds if not affected by errors (or corrections)
+        //whereas the measurement error vector is fully redrawn every measurement round.
+        if (curand_uniform(&states[threadID]) < errorProb) variables[threadID+nQubits] = 1;
+        else variables[threadID+nQubits] = 0;
     }
 }
 
@@ -163,7 +164,7 @@ void updateFactorMessagesTanh(int M, double* variableMessages, double* factorMes
         int* factorToVariables, int* factorDegrees, int maxFactorDegree, int* factorToPos, int maxVariableDegree)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per factor 
-    int degree = factorDegrees[threadID]
+    int degree = factorDegrees[threadID];
     if (threadID < M)
     {
         for (int i=0; i<degree; ++i)
@@ -241,7 +242,7 @@ void updateVariableMessages(int N, int nQubits, double* factorMessages, double* 
 }
 
 __global__
-void calcMarginals(int N, int nQubits, double* marginals, double* factorMessages, double llrp0, double llrq0)
+void calcMarginals(int N, int nQubits, double* marginals, double* factorMessages, int* variableDegrees, int maxVariableDegree, double llrp0, double llrq0)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per variable
     int degree = variableDegrees[threadID];

@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
     }
       
     //build code info 
-    Code code("parity_check_matrices/lifted_product_[[416,18,20]]");
+    Code code("parity_check_matrices/lifted_product_[[416,18,20]]",416);
 
     //for copying out later
     int variablesX[code.N_X] = {};     
@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
     //don't need to copy for these, just set to all zeros on device (later)
     cudaMalloc(&d_variablesX, code.N_X*sizeof(int));
     cudaMalloc(&d_variablesZ, code.N_Z*sizeof(int));
-    cudaMalloc(&d_syndromeX, code.M_X*sizeof(int));
-    cudaMalloc(&d_syndromeZ, code.M_Z*sizeof(int));
+    cudaMalloc(&d_factorsX, code.M_X*sizeof(int));
+    cudaMalloc(&d_factorsZ, code.M_Z*sizeof(int));
 
     //these get copied to device from initialised versions in code object
     cudaMalloc(&d_variableDegreesX, code.N_X*sizeof(int));
@@ -100,19 +100,19 @@ int main(int argc, char *argv[])
     cudaMemcpy(d_variableToPosZ, code.variableToPosZ[0],
                 code.maxVariableDegreeZ*code.N_Z*sizeof(int), cudaMemcpyHostToDevice);
 
-    cudaMalloc(&d_factorToPosX, code.maxFactorDegree*code.M_X*sizeof(int));
+    cudaMalloc(&d_factorToPosX, code.maxFactorDegreeX*code.M_X*sizeof(int));
     cudaMemcpy(d_factorToPosX, code.factorToPosX[0],
                 code.maxFactorDegreeX*code.M_X*sizeof(int), cudaMemcpyHostToDevice);
 
-    cudaMalloc(&d_factorToPosZ, code.maxFactorDegree*code.M_Z*sizeof(int));
+    cudaMalloc(&d_factorToPosZ, code.maxFactorDegreeZ*code.M_Z*sizeof(int));
     cudaMemcpy(d_factorToPosZ, code.factorToPosZ[0],
             code.maxFactorDegreeZ*code.M_Z*sizeof(int), cudaMemcpyHostToDevice);
 
     //These also get initialised on device
-    cudaMalloc(&d_variableMessagesX, code.maxFactorDegreeX*code.M_X*sizeof(double));
-    cudaMalloc(&d_variableMessagesZ, code.maxFactorDegreeZ*code.M_Z*sizeof(double));
-    cudaMalloc(&d_factorMessagesX, code.maxVariableDegreeX*code.N_X*sizeof(double));
-    cudaMalloc(&d_factorMessagesZ, code.maxVariableDegreeZ*code.N_Z*sizeof(double));
+    cudaMalloc(&d_variableMessagesX, code.maxFactorDegreeZ*code.M_Z*sizeof(double));
+    cudaMalloc(&d_variableMessagesZ, code.maxFactorDegreeX*code.M_X*sizeof(double));
+    cudaMalloc(&d_factorMessagesX, code.maxVariableDegreeZ*code.N_Z*sizeof(double));
+    cudaMalloc(&d_factorMessagesZ, code.maxVariableDegreeX*code.N_X*sizeof(double));
     cudaMalloc(&d_marginalsX, code.N_X*sizeof(double));
     cudaMalloc(&d_marginalsZ, code.N_Z*sizeof(double));
 
@@ -188,8 +188,10 @@ int main(int argc, char *argv[])
                                 d_variableToFactorsZ, d_variableDegreesZ, code.maxVariableDegreeZ, d_variableToPosZ, code.maxFactorDegreeX, llrp0, llrq0);
                         cudaDeviceSynchronize();
                     }
-                    calcMarginals<<<(code.N_X+255)/256,256>>>(code.N_X, code.nQubits, d_marginalsX, d_factorMessagesZ, llrp0, llrq0);
-                    calcMarginals<<<(code.N_Z+255)/256,256>>>(code.N_Z, code.nQubits, d_marginalsZ, d_factorMessagesX, llrp0, llrq0);
+                    calcMarginals<<<(code.N_X+255)/256,256>>>(code.N_X, code.nQubits, d_marginalsX, d_factorMessagesZ, 
+                                                                d_variableDegreesX, code.maxVariableDegreeX, llrp0, llrq0);
+                    calcMarginals<<<(code.N_Z+255)/256,256>>>(code.N_Z, code.nQubits, d_marginalsZ, d_factorMessagesX, 
+                                                                d_variableDegreesZ, code.maxVariableDegreeZ, llrp0, llrq0);
                     cudaDeviceSynchronize();    
                     bpCorrection<<<(code.N_X+255)/256,256>>>(code.nQubits, code.nChecksZ, d_marginalsX, d_variablesX, d_factorsZ,
                             d_variableToFactorsX, d_variableDegreesX, code.maxVariableDegreeX);
@@ -236,7 +238,7 @@ int main(int argc, char *argv[])
             for (int j=0; j<code.nQubits; ++j) std::cout << ',' << variablesZ[j];
             std::cout << '\n';
             std::cout << ps[i] << ',' << run << ",s,X";
-            for (int j=0; j<code.nChecks; ++j) std::cout << ',' << factorsX[j];
+            for (int j=0; j<code.nChecksX; ++j) std::cout << ',' << factorsX[j];
             std::cout << '\n';
         }
     }

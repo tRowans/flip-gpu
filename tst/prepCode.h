@@ -3,8 +3,8 @@
 
 #include "code.h"
 
-inline Code fourqsurface("/work/NemotoU/tom/flip_general/tst/surface");
-inline Code sevenqcolour("/work/NemotoU/tom/flip_general/tst/colour");
-inline Code eightq3Dcolour("/work/NemotoU/tom/flip_general/tst/colour3d");
+inline Code fourqsurface("/work/NemotoU/tom/flip_general/tst/surface", 4);
+inline Code sevenqcolour("/work/NemotoU/tom/flip_general/tst/colour", 7);
+inline Code eightq3Dcolour("/work/NemotoU/tom/flip_general/tst/colour3d", 8);
 
 #endif 

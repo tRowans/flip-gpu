@@ -37,7 +37,7 @@ void Code::getFactorDegrees(int M, int N, int* factorDegrees, int maxFactorDegre
         int degree = 0;
         for (int j=0; j<N; ++j) degree += H[i][j];
         factorDegrees[i] = degree;
-        if (degree > maxFactorDegrees) maxFactorDegrees = degree;
+        if (degree > maxFactorDegree) maxFactorDegree = degree;
     }
 }
 
@@ -106,18 +106,18 @@ Code::Code(std::string codename, int n)
     readParityCheckMatrix(codename+"_hx.txt", H_X);
     readParityCheckMatrix(codename+"_hz.txt", H_Z);
    
-    //Parity check matrix for BP has the form
+    //Parity check matrix for BP with metachecks has the form
     //
     //         <-----------N------------>
     //            <---n--->  <---m--->
     // 
-    //  ^  ^   |‾ |‾     ‾|  |‾     ‾| ‾|
+    //  ^  ^   |- |-     -|  |-     -�|-|
     //  |  |   |  |       |  |       |  |
     //  |  m   |  |   H   |  |   I   |  |
     //  |  |   |  |       |  |       |  |
     //  |  v   |  |_     _|  |_     _|  |
     //  M      |                        |
-    //  |  ^   |  |‾     ‾|  |‾     ‾|  |
+    //  |  ^   |  |-     -|  |-     -|  |
     //  |  |   |  |       |  |       |  |
     //  |  x   |  |   0   |  |   C   |  |
     //  |  |   |  |       |  |       |  |
@@ -131,34 +131,57 @@ Code::Code(std::string codename, int n)
     //       H = normal parity check matrix
     //       I = identity matrix of size m
     //       C = metacheck matrix
+    //
+    //Measurement errors are implemented using the I submatrix
+    //so this needs to be added even if we just want to use flip
+    //or BP without metachecks. C only needs to be added if we
+    //want to use BP with metachecks.
 
     nQubits = n;
-    H_X.size() = M_X;
-    H_X[0].size() = N_X;
-    H_Z.size() = M_Z;
-    H_Z[0].size() = N_Z
-    if (N_X == nQubits) nChecksX = M_X;   //No BP 
-    else
+    M_X = H_X.size();
+    N_Z = H_X[0].size();    //This is Z qubit errors + X stab measurement errors
+    M_Z = H_Z.size();
+    N_X = H_Z[0].size();    //This is X qubit errors + Z stab measurement errors
+    //Adding I to XPCM if it doesn't exist
+    if (nQubits == N_Z)
     {
-        nChecksX = N_X - nQubits;
-        nMetachecksX = M_X - nChecksX;
+        N_Z = nQubits + M_X;
+        nChecksX = M_X;
+        for (int i=0; i<nChecksX; ++i)
+        {
+            for (int j=0; j<nChecksX; ++j)
+            {
+                H_X[i].push_back(i==j);
+            }
+        }
     }
-    if (N_Z == nQubits) nChecksZ = M_Z;   //No BP
-    else
+    else nChecksX = N_Z - nQubits;
+    nMetachecksX = M_X - nChecksX;
+    //Adding I to ZPCM if it doesn't exist
+    if (nQubits == N_X)
     {
-        nChecksZ = N_Z - nQubits;
-        nMetachecksZ = M_Z - nChecksZ;
+        N_X = nQubits + M_Z;
+        nChecksZ = M_Z;
+        for (int i=0; i<nChecksZ; ++i)
+        {
+            for (int j=0; j<nChecksZ; ++j)
+            {
+                H_Z[i].push_back(i==j);
+            }
+        }
     }
+    else nChecksZ = N_Z - nQubits;
+    nMetachecksZ = M_Z - nChecksZ;
     
     variableDegreesX = new int[N_X];     
     variableDegreesZ = new int[N_Z];     
     factorDegreesX = new int[M_X]; 
     factorDegreesZ = new int[M_Z];
 
-    getVariableDegrees(M_X, N_X, variableDegreesX, maxVariableDegreeX, H_X)
-    getVariableDegrees(M_Z, N_Z, variableDegreesZ, maxVariableDegreeZ, H_Z)
-    getFactorDegrees(M_X, N_X, factorDegreesX, maxFactorDegreeX, H_X)
-    getFactorDegrees(M_Z, N_Z, factorDegreesZ, maxFactorDegreeZ, H_Z)
+    getVariableDegrees(M_X, N_X, variableDegreesX, maxVariableDegreeX, H_X);
+    getVariableDegrees(M_Z, N_Z, variableDegreesZ, maxVariableDegreeZ, H_Z);
+    getFactorDegrees(M_X, N_X, factorDegreesX, maxFactorDegreeX, H_X);
+    getFactorDegrees(M_Z, N_Z, factorDegreesZ, maxFactorDegreeZ, H_Z);
     
     //This is a trick to get a dynamically allocated 2D array in contiguous memory
     //which means the whole thing can easily be copied to a 1D array on the GPU
@@ -196,10 +219,10 @@ Code::Code(std::string codename, int n)
     for (int i=1; i<M_X; ++i) factorToPosX[i] = factorToPosX[i-1] + maxFactorDegreeX;
     for (int i=1; i<M_Z; ++i) factorToPosZ[i] = factorToPosZ[i-1] + maxFactorDegreeZ;
 
-    buildNodeToPos(N_X, variableToPosX, variableDegreesX, variableToFactorsX, factorDegreesX, factorToVariablesX);
-    buildNodeToPos(N_Z, variableToPosZ, variableDegreesZ, variableToFactorsZ, factorDegreesZ, factorToVariablesZ);
-    buildNodeToPos(M_X, factorToPosX, factorDegreesX, factorToVariablesX, variableDegreesX, variableToFactorsX);
-    buildNodeToPos(M_Z, factorToPosZ, factorDegreesZ, factorToVariablesZ, variableDegreesZ, variableToFactorsZ);
+    buildNodeToPos(N_X, variableToPosX, variableDegreesX, variableToFactorsX, maxVariableDegreeX, factorDegreesZ, factorToVariablesZ);
+    buildNodeToPos(N_Z, variableToPosZ, variableDegreesZ, variableToFactorsZ, maxVariableDegreeZ, factorDegreesX, factorToVariablesX);
+    buildNodeToPos(M_X, factorToPosX, factorDegreesX, factorToVariablesX, maxFactorDegreeX, variableDegreesZ, variableToFactorsZ);
+    buildNodeToPos(M_Z, factorToPosZ, factorDegreesZ, factorToVariablesZ, maxFactorDegreeZ, variableDegreesX, variableToFactorsX);
 }
 
 Code::~Code()
