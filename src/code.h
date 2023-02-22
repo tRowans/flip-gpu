@@ -16,26 +16,26 @@ class Code
         int nChecksZ;
         int nMetachecksX;
         int nMetachecksZ;
-        int maxVariableDegreeX;     //"variables" and "factors" are node in the factor graph
-        int maxVariableDegreeZ;     //used in BP decoding. When not using BP (or BP without metachecks)
-        int maxFactorDegreeX;       //these will be equivalent to max bit degree and max check degree
-        int maxFactorDegreeZ;       //in the X and Z tanner graphs
+        int maxVariableDegreeX;     //"variables" and "factors" are nodes in the factor graph
+        int maxVariableDegreeZ;     //used in BP decoding. X variables come from the columns
+        int maxFactorDegreeX;       //of the X parity check matrix and so actually represent
+        int maxFactorDegreeZ;       //Z errors and X stab measurement errors (same for Z variables)
         int M_X;                
         int N_X;                    //These are the sizes of the X and Z parity check matrices
-        int M_Z;                    //If we are not using BP then N_X = N_Z = nQubits, 
-        int N_Z;                    //M_X = nChecksX and M_Z = nChecksZ
+        int M_Z;                    
+        int N_Z;                    
 
         //data arrays
         std::vector<std::vector<int>> H_X = {};
         std::vector<std::vector<int>> H_Z = {};
         int* variableDegreesX;      //Using pointers here because the GPU doesn't like vectors.//
         int* variableDegreesZ;      //As above these refer to variables and factors used in BP decoding.
-        int** variableToFactorsX;   //When not using BP these will be arrays of bit/check degrees
-        int** variableToFactorsZ;   //and maps from bits to connected checks and vice versa.
-        int* factorDegreesX;        //When using BP the variable arrays will have extra entries 
-        int* factorDegreesZ;        //for the measurement error variables, and when using BP  
-        int** factorToVariablesX;   //with metachecks the factor arrays will have extra entries  
-        int** factorToVariablesZ;   //for metacheck factors.//
+        int** variableToFactorsX;   //There is always one variable per qubit (for physical Z/X errors)
+        int** variableToFactorsZ;   //and one variable per X/Z stabiliser (for measurement errors)X/Z. 
+        int* factorDegreesX;        //If there are no metachecks there will be one factor per X/Z stabiliser
+        int* factorDegreesZ;        //and if there are metachecks there will also be one factor per X/Z metacheck//
+        int** factorToVariablesX;   
+        int** factorToVariablesZ;   
         int** variableToPosX;       //These are maps from e.g. X variable v_i to an array [pos_1,pos_2,...,pos_n]
         int** variableToPosZ;       //where pos_j is such that for f_j in variableToFactorsX[v_i] = [f_1,f_2,...,f_n],
         int** factorToPosX;         //factorToVariablesX[f_j][pos_j] = v_i. In other words they let a variable find 

@@ -139,13 +139,13 @@ Code::Code(std::string codename, int n)
 
     nQubits = n;
     M_X = H_X.size();
-    N_Z = H_X[0].size();    //This is Z qubit errors + X stab measurement errors
+    N_X = H_X[0].size();    
     M_Z = H_Z.size();
-    N_X = H_Z[0].size();    //This is X qubit errors + Z stab measurement errors
+    N_Z = H_Z[0].size();   
     //Adding I to XPCM if it doesn't exist
-    if (nQubits == N_Z)
+    if (nQubits == N_X)
     {
-        N_Z = nQubits + M_X;
+        N_X = nQubits + M_X;
         nChecksX = M_X;
         for (int i=0; i<nChecksX; ++i)
         {
@@ -155,12 +155,12 @@ Code::Code(std::string codename, int n)
             }
         }
     }
-    else nChecksX = N_Z - nQubits;
+    else nChecksX = N_X - nQubits;
     nMetachecksX = M_X - nChecksX;
     //Adding I to ZPCM if it doesn't exist
-    if (nQubits == N_X)
+    if (nQubits == N_Z)
     {
-        N_X = nQubits + M_Z;
+        N_Z = nQubits + M_Z;
         nChecksZ = M_Z;
         for (int i=0; i<nChecksZ; ++i)
         {
@@ -219,10 +219,10 @@ Code::Code(std::string codename, int n)
     for (int i=1; i<M_X; ++i) factorToPosX[i] = factorToPosX[i-1] + maxFactorDegreeX;
     for (int i=1; i<M_Z; ++i) factorToPosZ[i] = factorToPosZ[i-1] + maxFactorDegreeZ;
 
-    buildNodeToPos(N_X, variableToPosX, variableDegreesX, variableToFactorsX, maxVariableDegreeX, factorDegreesZ, factorToVariablesZ);
-    buildNodeToPos(N_Z, variableToPosZ, variableDegreesZ, variableToFactorsZ, maxVariableDegreeZ, factorDegreesX, factorToVariablesX);
-    buildNodeToPos(M_X, factorToPosX, factorDegreesX, factorToVariablesX, maxFactorDegreeX, variableDegreesZ, variableToFactorsZ);
-    buildNodeToPos(M_Z, factorToPosZ, factorDegreesZ, factorToVariablesZ, maxFactorDegreeZ, variableDegreesX, variableToFactorsX);
+    buildNodeToPos(N_X, variableToPosX, variableDegreesX, variableToFactorsX, maxVariableDegreeX, factorDegreesX, factorToVariablesX);
+    buildNodeToPos(N_Z, variableToPosZ, variableDegreesZ, variableToFactorsZ, maxVariableDegreeZ, factorDegreesZ, factorToVariablesZ);
+    buildNodeToPos(M_X, factorToPosX, factorDegreesX, factorToVariablesX, maxFactorDegreeX, variableDegreesX, variableToFactorsX);
+    buildNodeToPos(M_Z, factorToPosZ, factorDegreesZ, factorToVariablesZ, maxFactorDegreeZ, variableDegreesZ, variableToFactorsZ);
 }
 
 Code::~Code()

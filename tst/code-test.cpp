@@ -72,8 +72,8 @@ TEST(getVariableDegreesTest, colour2D)
 }
 TEST(getVariableDegreesTest, colour3D)
 {
-    int variableDegreesX[14] = {3,3,3,3,3,3,3,3,3,3,3,3,3,3};
-    int variableDegreesZ[8] = {1,1,1,1,1,1,1,1};
+    int variableDegreesX[8] = {1,1,1,1,1,1,1,1};
+    int variableDegreesZ[14] = {3,3,3,3,3,3,3,3,3,3,3,3,3,3};
     EXPECT_EQ(eightq3Dcolour.maxVariableDegreeX, 3);
     EXPECT_EQ(eightq3Dcolour.maxVariableDegreeZ, 1);
     for (int i=0; i<14; ++i) EXPECT_EQ(eightq3Dcolour.variableDegreesX[i], variableDegreesX[i]);
@@ -152,7 +152,8 @@ TEST(buildVariableToFactors, colour2D)
 }
 TEST(buildVariableToFactors, colour3D)
 {
-    int variableToFactorsX[14][3] = {{0,1,2},
+    int variableToFactorsX[8][1] = {{0},{0},{0},{0},{0},{0},{0},{0}};
+    int variableToFactorsZ[14][3] = {{0,1,2},
                                      {0,1,3},
                                      {0,2,4},
                                      {0,3,4},
@@ -166,7 +167,6 @@ TEST(buildVariableToFactors, colour3D)
                                      {3,7,8},
                                      {4,6,8},
                                      {5,6,7}};
-    int variableToFactorsZ[8][1] = {{0},{0},{0},{0},{0},{0},{0},{0}};
     for (int i=0; i<14; ++i)
     {
         for (int j=0; j<3; ++j) EXPECT_EQ(eightq3Dcolour.variableToFactorsX[i][j], variableToFactorsX[i][j]);
@@ -282,7 +282,8 @@ TEST(buildNodeToPosTest, colour2D)
 }
 TEST(buildNodeToPosTest, colour3D)
 {
-    int variableToPosX[14][3] = {{0,0,0},
+    int variableToPosX[8][1] = {{0},{1},{2},{3},{4},{5},{6},{7}};
+    int variableToPosZ[14][3] = {{0,0,0},
                                  {1,1,0},
                                  {2,1,0},
                                  {3,1,1},
@@ -296,7 +297,6 @@ TEST(buildNodeToPosTest, colour3D)
                                  {4,2,2},
                                  {4,2,3},
                                  {4,3,3}};
-    int variableToPosZ[8][1] = {{0},{1},{2},{3},{4},{5},{6},{7}};
     int factorToPosX[1][8] = {{0,0,0,0,0,0,0,0}};
     int factorToPosZ[9][5] = {{0,0,0,0,0},
                               {1,1,0,0,0},

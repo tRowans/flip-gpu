@@ -146,20 +146,20 @@ int main(int argc, char *argv[])
             for (int cycle=0; cycle<cycles; ++cycle) 
             {
                 depolErrors<<<(code.nQubits+255)/256,256>>>(code.nQubits, d_states, d_variablesX, d_variablesZ, ps[i]);                 //qubit errors
-                measErrors<<<(code.N_X+255)/256,256>>>(code.nQubits, code.nChecksZ, d_states, d_variablesX, qs[i]);                     //Z measurement errors
-                measErrors<<<(code.N_Z+255)/256,256>>>(code.nQubits, code.nChecksX, d_states, d_variablesZ, qs[i]);                     //X measurement errors
+                measErrors<<<(code.N_X+255)/256,256>>>(code.nQubits, code.nChecksX, d_states, d_variablesX, qs[i]);                     //X stab meas errors
+                measErrors<<<(code.N_Z+255)/256,256>>>(code.nQubits, code.nChecksZ, d_states, d_variablesZ, qs[i]);                     //Z stab meas errors
                 cudaDeviceSynchronize();
-                calculateSyndrome<<<(code.M_Z+255)/256,256>>>(code.M_Z, d_variablesX, d_factorsZ,                                       //calculate checks
-                                        d_factorToVariablesZ, d_factorDegreesZ, code.maxFactorDegreeZ);                                 //(inc. metachecks)
-                calculateSyndrome<<<(code.M_X+255)/256,256>>>(code.M_X, d_variablesZ, d_factorsX, 
-                                        d_factorToVariablesX, d_factorDegreesX, code.maxFactorDegreeX);
+                calculateSyndrome<<<(code.M_X+255)/256,256>>>(code.M_X, d_variablesX, d_factorsX,                                       //calculate checks
+                                        d_factorToVariablesX, d_factorDegreesX, code.maxFactorDegreeX);                                 //(inc. metachecks)
+                calculateSyndrome<<<(code.M_Z+255)/256,256>>>(code.M_Z, d_variablesZ, d_factorsZ, 
+                                        d_factorToVariablesZ, d_factorDegreesZ, code.maxFactorDegreeZ);
                 cudaDeviceSynchronize();
 
                 //prepare initial distributions for BP
-                initVariableMessages<<<(code.M_Z+255)/256,256>>>(code.M_Z, code.nChecksZ, d_variableMessagesX, d_factorDegreesZ,
-                        code.maxFactorDegreeZ, llrp0, llrq0);
-                initVariableMessages<<<(code.M_X+255)/256,256>>>(code.M_X, code.nChecksX, d_variableMessagesZ, d_factorDegreesX,
+                initVariableMessages<<<(code.M_X+255)/256,256>>>(code.M_X, code.nChecksX, d_variableMessagesX, d_factorDegreesX,
                         code.maxFactorDegreeX, llrp0, llrq0);
+                initVariableMessages<<<(code.M_Z+255)/256,256>>>(code.M_Z, code.nChecksZ, d_variableMessagesZ, d_factorDegreesZ,
+                        code.maxFactorDegreeZ, llrp0, llrq0);
                 cudaDeviceSynchronize();
 
                 //BP
@@ -169,33 +169,33 @@ int main(int argc, char *argv[])
                     {
                         if (useBP == 1)
                         {
-                            updateFactorMessagesTanh<<<(code.M_Z+255)/256,256>>>(code.M_Z, d_variableMessagesX, d_factorMessagesZ, d_factorsZ,
-                                    d_factorToVariablesZ, d_factorDegreesZ, code.maxFactorDegreeZ, d_factorToPosZ, code.maxVariableDegreeX);
-                            updateFactorMessagesTanh<<<(code.M_X+255)/256,256>>>(code.M_X, d_variableMessagesZ, d_factorMessagesX, d_factorsX,
-                                    d_factorToVariablesX, d_factorDegreesX, code.maxFactorDegreeX, d_factorToPosX, code.maxVariableDegreeZ);
+                            updateFactorMessagesTanh<<<(code.M_X+255)/256,256>>>(code.M_X, d_variableMessagesX, d_factorMessagesX, d_factorsX,
+                                    d_factorToVariablesX, d_factorDegreesX, code.maxFactorDegreeX, d_factorToPosX, code.maxVariableDegreeX);
+                            updateFactorMessagesTanh<<<(code.M_Z+255)/256,256>>>(code.M_Z, d_variableMessagesZ, d_factorMessagesZ, d_factorsZ,
+                                    d_factorToVariablesZ, d_factorDegreesZ, code.maxFactorDegreeZ, d_factorToPosZ, code.maxVariableDegreeZ);
                         }
                         else if (useBP == 2)
                         {
-                            updateFactorMessagesMinSum<<<(code.M_Z+255)/256,256>>>(alpha, code.M_Z, d_variableMessagesX, d_factorMessagesZ, d_factorsZ,
-                                    d_factorToVariablesZ, d_factorDegreesZ, code.maxFactorDegreeZ, d_factorToPosZ, code.maxVariableDegreeX);
-                            updateFactorMessagesMinSum<<<(code.M_X+255)/256,256>>>(alpha, code.M_X, d_variableMessagesZ, d_factorMessagesX, d_factorsX,
-                                    d_factorToVariablesX, d_factorDegreesX, code.maxFactorDegreeX, d_factorToPosX, code.maxVariableDegreeZ);
+                            updateFactorMessagesMinSum<<<(code.M_X+255)/256,256>>>(alpha, code.M_X, d_variableMessagesX, d_factorMessagesX, d_factorsX,
+                                    d_factorToVariablesX, d_factorDegreesX, code.maxFactorDegreeX, d_factorToPosX, code.maxVariableDegreeX);
+                            updateFactorMessagesMinSum<<<(code.M_Z+255)/256,256>>>(alpha, code.M_Z, d_variableMessagesZ, d_factorMessagesZ, d_factorsZ,
+                                    d_factorToVariablesZ, d_factorDegreesZ, code.maxFactorDegreeZ, d_factorToPosZ, code.maxVariableDegreeZ);
                         }
                         cudaDeviceSynchronize();
-                        updateVariableMessages<<<(code.N_X+255)/256,256>>>(code.N_X, code.nQubits, d_factorMessagesZ, d_variableMessagesX, 
-                                d_variableToFactorsX, d_variableDegreesX, code.maxVariableDegreeX, d_variableToPosX, code.maxFactorDegreeZ, llrp0, llrq0);
-                        updateVariableMessages<<<(code.N_Z+255)/256,256>>>(code.N_Z, code.nQubits, d_factorMessagesX, d_variableMessagesZ,
-                                d_variableToFactorsZ, d_variableDegreesZ, code.maxVariableDegreeZ, d_variableToPosZ, code.maxFactorDegreeX, llrp0, llrq0);
+                        updateVariableMessages<<<(code.N_X+255)/256,256>>>(code.N_X, code.nQubits, d_factorMessagesX, d_variableMessagesX, 
+                                d_variableToFactorsX, d_variableDegreesX, code.maxVariableDegreeX, d_variableToPosX, code.maxFactorDegreeX, llrp0, llrq0);
+                        updateVariableMessages<<<(code.N_Z+255)/256,256>>>(code.N_Z, code.nQubits, d_factorMessagesZ, d_variableMessagesZ,
+                                d_variableToFactorsZ, d_variableDegreesZ, code.maxVariableDegreeZ, d_variableToPosZ, code.maxFactorDegreeZ, llrp0, llrq0);
                         cudaDeviceSynchronize();
                     }
-                    calcMarginals<<<(code.N_X+255)/256,256>>>(code.N_X, code.nQubits, d_marginalsX, d_factorMessagesZ, 
+                    calcMarginals<<<(code.N_X+255)/256,256>>>(code.N_X, code.nQubits, d_marginalsX, d_factorMessagesX, 
                                                                 d_variableDegreesX, code.maxVariableDegreeX, llrp0, llrq0);
-                    calcMarginals<<<(code.N_Z+255)/256,256>>>(code.N_Z, code.nQubits, d_marginalsZ, d_factorMessagesX, 
+                    calcMarginals<<<(code.N_Z+255)/256,256>>>(code.N_Z, code.nQubits, d_marginalsZ, d_factorMessagesZ, 
                                                                 d_variableDegreesZ, code.maxVariableDegreeZ, llrp0, llrq0);
                     cudaDeviceSynchronize();    
-                    bpCorrection<<<(code.N_X+255)/256,256>>>(code.nQubits, code.nChecksZ, d_marginalsX, d_variablesX, d_factorsZ,
+                    bpCorrection<<<(code.N_X+255)/256,256>>>(code.nQubits, code.nChecksX, d_marginalsX, d_variablesX, d_factorsX,
                             d_variableToFactorsX, d_variableDegreesX, code.maxVariableDegreeX);
-                    bpCorrection<<<(code.N_Z+255)/256,256>>>(code.nQubits, code.nChecksX, d_marginalsZ, d_variablesZ, d_factorsX,
+                    bpCorrection<<<(code.N_Z+255)/256,256>>>(code.nQubits, code.nChecksZ, d_marginalsZ, d_variablesZ, d_factorsZ,
                             d_variableToFactorsZ, d_variableDegreesZ, code.maxVariableDegreeZ);
                     cudaDeviceSynchronize();
                 }
@@ -207,16 +207,16 @@ int main(int argc, char *argv[])
                         //if we used BP we can run pflip straight away, otherwise do some normal flip first
                         if ((useBP == 0 && (iter+1) % pfreq == 0) || (useBP == 1 && iter % pfreq == 0))
                         {
-                            pflip<<<(code.N_X+255)/256,256>>>(code.nQubits, d_states, d_variablesX, d_factorsZ,
+                            pflip<<<(code.N_X+255)/256,256>>>(code.nQubits, d_states, d_variablesX, d_factorsX,
                                         d_variableToFactorsX, d_variableDegreesX, code.maxVariableDegreeX);
-                            pflip<<<(code.N_Z+255)/256,256>>>(code.nQubits, d_states, d_variablesZ, d_factorsX,
+                            pflip<<<(code.N_Z+255)/256,256>>>(code.nQubits, d_states, d_variablesZ, d_factorsZ,
                                         d_variableToFactorsZ, d_variableDegreesZ, code.maxVariableDegreeZ);
                         }
                         else
                         {
-                            flip<<<(code.N_X+255)/256,256>>>(code.nQubits, d_variablesX, d_factorsZ, 
+                            flip<<<(code.N_X+255)/256,256>>>(code.nQubits, d_variablesX, d_factorsX, 
                                     d_variableToFactorsX, d_variableDegreesX, code.maxVariableDegreeX);
-                            flip<<<(code.N_Z+255)/256,256>>>(code.nQubits, d_variablesZ, d_factorsX,
+                            flip<<<(code.N_Z+255)/256,256>>>(code.nQubits, d_variablesZ, d_factorsZ,
                                     d_variableToFactorsZ, d_variableDegreesZ, code.maxVariableDegreeZ);
                         }
                         cudaDeviceSynchronize();
@@ -225,20 +225,20 @@ int main(int argc, char *argv[])
             }
 
             cudaMemcpy(variablesX, d_variablesX, code.N_X*sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(factorsZ, d_factorsZ, code.M_Z*sizeof(int), cudaMemcpyDeviceToHost);
-            std::cout << ps[i] << ',' << run << ",q,X";
-            for (int j=0; j<code.nQubits; ++j) std::cout << ',' << variablesX[j];
-            std::cout << '\n';
-            std::cout << ps[i] << ',' << run << ",s,Z";
-            for (int j=0; j<code.nChecksZ; ++j) std::cout << ',' << factorsZ[j];
-            std::cout << '\n';
-            cudaMemcpy(variablesZ, d_variablesZ, code.N_Z*sizeof(int), cudaMemcpyDeviceToHost);
             cudaMemcpy(factorsX, d_factorsX, code.M_X*sizeof(int), cudaMemcpyDeviceToHost);
             std::cout << ps[i] << ',' << run << ",q,Z";
-            for (int j=0; j<code.nQubits; ++j) std::cout << ',' << variablesZ[j];
+            for (int j=0; j<code.nQubits; ++j) std::cout << ',' << variablesX[j];
             std::cout << '\n';
             std::cout << ps[i] << ',' << run << ",s,X";
             for (int j=0; j<code.nChecksX; ++j) std::cout << ',' << factorsX[j];
+            std::cout << '\n';
+            cudaMemcpy(variablesZ, d_variablesZ, code.N_Z*sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(factorsZ, d_factorsZ, code.M_Z*sizeof(int), cudaMemcpyDeviceToHost);
+            std::cout << ps[i] << ',' << run << ",q,X";
+            for (int j=0; j<code.nQubits; ++j) std::cout << ',' << variablesZ[j];
+            std::cout << '\n';
+            std::cout << ps[i] << ',' << run << ",s,Z";
+            for (int j=0; j<code.nChecksZ; ++j) std::cout << ',' << factorsZ[j];
             std::cout << '\n';
         }
     }
