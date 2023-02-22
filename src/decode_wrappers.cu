@@ -43,6 +43,7 @@ void measErrorsWrap(int nQubits, int nChecks, unsigned int seed, int* variables,
     int *d_variables;
     int N = nQubits + nChecks;
     cudaMalloc(&d_variables, N*sizeof(int));
+    cudaMemcpy(d_variables, variables, N*sizeof(int), cudaMemcpyHostToDevice);
     curandState_t *d_states;
     cudaMalloc(&d_states, N*sizeof(curandState_t));
     createStates<<<(N+255)/256,256>>>(N, seed, d_states);

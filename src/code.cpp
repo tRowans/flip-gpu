@@ -17,7 +17,7 @@ void Code::readParityCheckMatrix(std::string hFile, std::vector<std::vector<int>
     }
 }
 
-void Code::getVariableDegrees(int M, int N, int* variableDegrees, int maxVariableDegree, std::vector<std::vector<int>> &H)
+void Code::getVariableDegrees(int M, int N, int* variableDegrees, int& maxVariableDegree, std::vector<std::vector<int>> &H)
 {
     maxVariableDegree = 0;
     for (int j=0; j<N; ++j)
@@ -29,7 +29,7 @@ void Code::getVariableDegrees(int M, int N, int* variableDegrees, int maxVariabl
     }
 }
 
-void Code::getFactorDegrees(int M, int N, int* factorDegrees, int maxFactorDegree, std::vector<std::vector<int>> &H)
+void Code::getFactorDegrees(int M, int N, int* factorDegrees, int& maxFactorDegree, std::vector<std::vector<int>> &H)
 {
     maxFactorDegree = 0;
     for (int i=0; i<M; ++i)
