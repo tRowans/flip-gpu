@@ -147,7 +147,7 @@ void initVariableMessages(int M, int nChecks, double* variableMessages, int* fac
         {
             variableMessages[maxFactorDegree*threadID+i] = llrp0;    //all except last are qubit error variables
         }
-        variableMessages[maxFactorDegree*threadID+factorDegrees[threadID]] = llrq0;  //last is a measurement error variable
+        variableMessages[maxFactorDegree*threadID+factorDegrees[threadID]-1] = llrq0;  //last is a measurement error variable
     }
     else if (threadID < M) //factor is a metacheck
     {
@@ -189,7 +189,7 @@ void updateFactorMessagesTanh(int M, double* variableMessages, double* factorMes
 }
 
 __global__
-void updateFactorMessagesMinSum(int alpha, int M, double* variableMessages, double* factorMessages, int* factors,
+void updateFactorMessagesMinSum(double alpha, int M, double* variableMessages, double* factorMessages, int* factors,
         int* factorToVariables, int* factorDegrees, int maxFactorDegree, int* factorToPos, int maxVariableDegree)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per factor
@@ -219,7 +219,7 @@ void updateFactorMessagesMinSum(int alpha, int M, double* variableMessages, doub
 
 __global__
 void updateVariableMessages(int N, int nQubits, double* factorMessages, double* variableMessages, int* variableToFactors,
-        int* variableDegrees, int maxVariableDegree, int* variableToPos, int maxFactorDegree, int llrp0, int llrq0)
+        int* variableDegrees, int maxVariableDegree, int* variableToPos, int maxFactorDegree, double llrp0, double llrq0)
 {
     int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per variable
     int degree = variableDegrees[threadID];

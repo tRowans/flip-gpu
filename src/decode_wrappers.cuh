@@ -14,10 +14,10 @@ void initVariableMessagesWrap(int M, int nChecks, double* variableMessages,
         int* factorDegrees, int maxFactorDegree, double llrp0, double llrq0);
 void updateFactorMessagesTanhWrap(int N, int M, double* variableMessages, double* factorMessages, int* factors, 
         int** factorToVariables, int* factorDegrees, int maxFactorDegree, int** factorToPos, int maxVariableDegree);
-void updateFactorMessagesMinSum(int alpha, int N, int M, double* variableMessages, double* factorMessages, int* factors,
+void updateFactorMessagesMinSum(double alpha, int N, int M, double* variableMessages, double* factorMessages, int* factors,
         int** factorToVariables, int* factorDegrees, int maxFactorDegree, int** factorToPos, int maxVariableDegree);
 void updateVariableMessagesWrap(int N, int M, int nQubits, double* factorMessages, double* variableMessages, int** variableToFactors, 
-        int* variableDegrees, int maxVariableDegree, int** variableToPos, int maxFactorDegree, int llrp0, int llrq0);
+        int* variableDegrees, int maxVariableDegree, int** variableToPos, int maxFactorDegree, double llrp0, double llrq0);
 void calcMarginalsWrap(int N, int nQubits, double* marginals, double* factorMessages, 
         int* variableDegrees, int maxVariableDegree, double llrp0, double llrq0);
 void bpCorrectionWrap(int N, int M, int nQubits, int nChecks, double* marginals, 

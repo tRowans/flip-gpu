@@ -444,7 +444,7 @@ TEST(pflipTest, colour2DMeasError)
     int factorsXExpected[3] = {1,1,1};
     int factorsZExpected1[3] = {0,0,0};
     int factorsZExpected2[3] = {1,1,0};
-    int factorsZExpected3[3] = {0,1,0};
+    int factorsZExpected3[3] = {0,1,1};
     int factorsZExpected4[3] = {1,0,1};
     std::random_device rd{};
     pflipWrap(10, 3, 7, 3, rd(), variablesX, factorsX, sevenqcolour.variableToFactorsX, 
@@ -508,8 +508,8 @@ TEST(initVariableMessagesTest, colour3D)
                                              llrq0,llrq0,llrq0,llrq0,0,
                                              llrq0,llrq0,llrq0,llrq0,0,
                                              llrq0,llrq0,llrq0,llrq0,0};
-    initVariableMessagesWrap(9, 6, variableMessagesX, eightq3Dcolour.factorDegreesX, eightq3Dcolour.maxFactorDegreeX, llrp0, llrq0);
-    initVariableMessagesWrap(1, 1, variableMessagesZ, eightq3Dcolour.factorDegreesZ, eightq3Dcolour.maxFactorDegreeZ, llrp0, llrq0);
+    initVariableMessagesWrap(1, 1, variableMessagesX, eightq3Dcolour.factorDegreesX, eightq3Dcolour.maxFactorDegreeX, llrp0, llrq0);
+    initVariableMessagesWrap(9, 6, variableMessagesZ, eightq3Dcolour.factorDegreesZ, eightq3Dcolour.maxFactorDegreeZ, llrp0, llrq0);
     for (int i=0; i<1*9; ++i) EXPECT_DOUBLE_EQ(variableMessagesX[i], variableMessagesXExpected[i]);
     for (int i=0; i<9*5; ++i) EXPECT_DOUBLE_EQ(variableMessagesZ[i], variableMessagesZExpected[i]);
 }
@@ -551,7 +551,7 @@ TEST(updateFactorMessagesTanhTest, CorrectOutput)
                                             m3,m5,m4,
                                             m2,m5,m4,
                                             m3,m5,m4,
-                                            m2,m5,m5};
+                                            m3,m5,m5};
 
     updateFactorMessagesTanhWrap(14, 9, variableMessagesZ, factorMessagesZ, factorsZ, 
             eightq3Dcolour.factorToVariablesZ, eightq3Dcolour.factorDegreesZ, eightq3Dcolour.maxFactorDegreeZ, 
@@ -579,7 +579,7 @@ TEST(updateFactorMessagesMinSumTest, CorrectOutput)
     //using alpha = 0.5, no idea if this is good in practise but fine for testing function
     double m0 = 0.5*llrq0;                                  //+1 stab to qubit error variable
     double m1 = -1*m0;                                      //-1 stab to qubit error variable
-    double m2 = 0.5*llrq0;                                  //+1 stab to measurement error variable
+    double m2 = 0.5*llrp0;                                  //+1 stab to measurement error variable
     double m3 = -1*m2;                                      //-1 stab to measurement error variable
     double m4 = 0.5*llrq0;                                  //+1 metacheck to measurement error variable
     double m5 = -1*m4;                                      //-1 metacheck to measurement error variable
@@ -596,7 +596,7 @@ TEST(updateFactorMessagesMinSumTest, CorrectOutput)
                                             m3,m5,m4,
                                             m2,m5,m4,
                                             m3,m5,m4,
-                                            m2,m5,m5};
+                                            m3,m5,m5};
 
     updateFactorMessagesMinSum(0.5, 14, 9, variableMessagesZ, factorMessagesZ, factorsZ,
             eightq3Dcolour.factorToVariablesZ, eightq3Dcolour.factorDegreesZ, eightq3Dcolour.maxFactorDegreeZ,
@@ -630,7 +630,7 @@ TEST(updateVariableMessagesTest, CorrectOutput)
                                     m3,m5,m4,
                                     m2,m5,m4,
                                     m3,m5,m4,
-                                    m2,m5,m5};
+                                    m3,m5,m5};
 
     double variableMessagesZ[9*5] = {llrp0,llrp0,llrp0,llrp0,llrq0,
                                      llrp0,llrp0,llrp0,llrp0,llrq0,
@@ -646,10 +646,10 @@ TEST(updateVariableMessagesTest, CorrectOutput)
                                              llrp0+m1+m1,llrp0+m1+m0,llrp0+m1+m1,llrp0+m0+m1,llrq0+m5+m4,
                                              llrp0+m1+m0,llrp0+m1+m1,llrp0+m0+m1,llrp0+m1+m1,llrq0+m5+m4,
                                              llrp0+m1+m0,llrp0+m1+m1,llrp0+m0+m1,llrp0+m1+m1,llrq0+m5+m4,
-                                             llrp0+m0+m0,llrp0+m1+m0,llrp0+m1+m1,llrp0+m0+m1,llrq0+m5+m4,
+                                             llrp0+m1+m1,llrp0+m1+m0,llrp0+m1+m1,llrp0+m0+m1,llrq0+m5+m4,
                                              llrp0+m0+m1,llrp0+m0+m0,llrp0+m1+m1,llrp0+m0+m1,llrq0+m5+m5,
-                                             llrq0+m3+m5,llrq0+m2+m4,llrq0+m3+m4,llrq0+m2+m5,0,
-                                             llrq0+m3+m5,llrq0+m3+m4,llrq0+m2+m4,llrq0+m2+m5,0,
+                                             llrq0+m3+m5,llrq0+m2+m4,llrq0+m3+m4,llrq0+m3+m5,0,
+                                             llrq0+m3+m5,llrq0+m3+m4,llrq0+m2+m4,llrq0+m3+m5,0,
                                              llrq0+m2+m5,llrq0+m3+m5,llrq0+m2+m5,llrq0+m3+m5,0};
     
     updateVariableMessagesWrap(14, 9, 8, factorMessagesZ, variableMessagesZ, eightq3Dcolour.variableToFactorsZ,
@@ -683,7 +683,7 @@ TEST(calcMarginalsWrapTest, CorrectOutput)
                                     m3,m5,m4,
                                     m2,m5,m4,
                                     m3,m5,m4,
-                                    m2,m5,m5};
+                                    m3,m5,m5};
     double marginalsZ[14] = {};
     double marginalsZExpected[14] = {llrp0+m1+m0+m1,
                                      llrp0+m1+m0+m0,
@@ -693,12 +693,12 @@ TEST(calcMarginalsWrapTest, CorrectOutput)
                                      llrp0+m0+m0+m1,
                                      llrp0+m1+m1+m1,
                                      llrp0+m0+m1+m1,
-                                     llrp0+m3+m5+m5,
-                                     llrp0+m2+m5+m4,
-                                     llrp0+m3+m5+m4,
-                                     llrp0+m2+m5+m4,
-                                     llrp0+m3+m5+m4,
-                                     llrp0+m2+m5+m5};
+                                     llrq0+m3+m5+m5,
+                                     llrq0+m2+m5+m4,
+                                     llrq0+m3+m5+m4,
+                                     llrq0+m2+m5+m4,
+                                     llrq0+m3+m5+m4,
+                                     llrq0+m3+m5+m5};
 
     calcMarginalsWrap(14, 8, marginalsZ, factorMessagesZ, eightq3Dcolour.variableDegreesZ, 
                         eightq3Dcolour.maxVariableDegreeZ, llrp0, llrq0);
@@ -712,7 +712,7 @@ TEST(bpCorrectionTest, CorrectOutput1)
     int variablesZ[14] = {0,0,1,0,0,0,0,0,0,0,0,0,0,1};
     int variablesZExpected[14] = {0,0,1,0,0,0,0,0,0,0,0,0,0,1};
     int factorsZ[9] = {1,0,1,0,1,1,1,1,0};
-    int factorsZExpected[9] = {0,0,1,0,1,1,1,1,0};
+    int factorsZExpected[9] = {0,0,1,0,1,0,1,1,0};
     double llrp0 = log10(0.99/0.01);
     double llrq0 = log10(0.98/0.02);
     double m0 = 2*atanh(tanh(llrp0/2)*tanh(llrp0/2)*tanh(llrp0/2)*tanh(llrq0/2));   //+1 stab to qubit error variable
@@ -729,12 +729,12 @@ TEST(bpCorrectionTest, CorrectOutput1)
                              llrp0+m0+m0+m1,
                              llrp0+m1+m1+m1,
                              llrp0+m0+m1+m1,
-                             llrp0+m3+m5+m5,
-                             llrp0+m2+m5+m4,
-                             llrp0+m3+m5+m4,
-                             llrp0+m2+m5+m4,
-                             llrp0+m3+m5+m4,
-                             llrp0+m2+m5+m5};
+                             llrq0+m3+m5+m5,
+                             llrq0+m2+m5+m4,
+                             llrq0+m3+m5+m4,
+                             llrq0+m2+m5+m4,
+                             llrq0+m3+m5+m4,
+                             llrq0+m3+m5+m5};
 
     bpCorrectionWrap(14, 9, 8, 6, marginalsZ, variablesZ, factorsZ, 
             eightq3Dcolour.variableToFactorsZ, eightq3Dcolour.variableDegreesZ, eightq3Dcolour.maxVariableDegreeZ);

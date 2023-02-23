@@ -25,11 +25,11 @@ __global__ void initVariableMessages(int M, int nChecks, double* variableMessage
 __global__ void updateFactorMessagesTanh(int M, double* variableMessages, double* factorMessages, int* factors,
         int* factorToVariables, int* factorDegrees, int maxFactorDegree, int* factorToPos, int maxVariableDegree);
 
-__global__ void updateFactorMessagesMinSum(int alpha, int M, double* variableMessages, double* factorMessages, int* factors,
+__global__ void updateFactorMessagesMinSum(double alpha, int M, double* variableMessages, double* factorMessages, int* factors,
         int* factorToVariables, int* factorDegrees, int maxFactorDegree, int* factorToPos, int maxVariableDegree);
 
 __global__ void updateVariableMessages(int N, int nQubits, double* factorMessages, double* variableMessages, int* variableToFactors, 
-        int* variableDegrees, int maxVariableDegree, int* variableToPos, int maxFactorDegree, int llrp0, int llrq0);
+        int* variableDegrees, int maxVariableDegree, int* variableToPos, int maxFactorDegree, double llrp0, double llrq0);
 
 __global__ void calcMarginals(int N, int nQubits, double* marginals, double* factorMessages, 
         int* variableDegrees, int maxVariableDegree, double llrp0, double llrq0);

@@ -123,7 +123,7 @@ void initVariableMessagesWrap(int M, int nChecks, double* variableMessages, int*
     cudaMalloc(&d_variableMessages, maxFactorDegree*M*sizeof(double));
     cudaMalloc(&d_factorDegrees, M*sizeof(int));
     cudaMemcpy(d_variableMessages, variableMessages, maxFactorDegree*M*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_factorDegrees, factorDegrees, M*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_factorDegrees, factorDegrees, M*sizeof(int), cudaMemcpyHostToDevice);
     initVariableMessages<<<(M+255)/256,256>>>(M, nChecks, d_variableMessages, d_factorDegrees, maxFactorDegree, llrp0, llrq0);
     cudaMemcpy(variableMessages, d_variableMessages, maxFactorDegree*M*sizeof(double), cudaMemcpyDeviceToHost);
     cudaFree(d_variableMessages);
@@ -158,7 +158,7 @@ void updateFactorMessagesTanhWrap(int N, int M, double* variableMessages, double
     cudaFree(d_factorToPos);
 }
 
-void updateFactorMessagesMinSum(int alpha, int N, int M, double* variableMessages, double* factorMessages, int* factors,
+void updateFactorMessagesMinSum(double alpha, int N, int M, double* variableMessages, double* factorMessages, int* factors,
         int** factorToVariables, int* factorDegrees, int maxFactorDegree, int** factorToPos, int maxVariableDegree)
 {
     double *d_variableMessages, *d_factorMessages;
@@ -187,7 +187,7 @@ void updateFactorMessagesMinSum(int alpha, int N, int M, double* variableMessage
 }
 
 void updateVariableMessagesWrap(int N, int M, int nQubits, double* factorMessages, double* variableMessages, int** variableToFactors, 
-        int* variableDegrees, int maxVariableDegree, int** variableToPos, int maxFactorDegree, int llrp0, int llrq0)
+        int* variableDegrees, int maxVariableDegree, int** variableToPos, int maxFactorDegree, double llrp0, double llrq0)
 {
     double *d_factorMessages, *d_variableMessages;
     int *d_variableToFactors, *d_variableDegrees, *d_variableToPos;
@@ -203,7 +203,7 @@ void updateVariableMessagesWrap(int N, int M, int nQubits, double* factorMessage
     cudaMemcpy(d_variableToPos, variableToPos[0], maxVariableDegree*N*sizeof(int), cudaMemcpyHostToDevice);
     updateVariableMessages<<<(N+255)/256,256>>>(N, nQubits, d_factorMessages, d_variableMessages, 
             d_variableToFactors, d_variableDegrees, maxVariableDegree, d_variableToPos, maxFactorDegree, llrp0, llrq0);
-    cudaMemcpy(variableDegrees, d_variableDegrees, maxFactorDegree*M*sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(variableMessages, d_variableMessages, maxFactorDegree*M*sizeof(double), cudaMemcpyDeviceToHost);
     cudaFree(d_factorMessages);
     cudaFree(d_variableMessages);
     cudaFree(d_variableToFactors);
@@ -218,12 +218,13 @@ void calcMarginalsWrap(int N, int nQubits, double* marginals, double* factorMess
     cudaMalloc(&d_marginals, N*sizeof(double));
     cudaMalloc(&d_factorMessages, maxVariableDegree*N*sizeof(double));
     cudaMalloc(&d_variableDegrees, N*sizeof(int));
-    cudaMemcpy(&d_factorMessages, factorMessages, maxVariableDegree*N*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(&d_variableDegrees, variableDegrees, N*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_factorMessages, factorMessages, maxVariableDegree*N*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_variableDegrees, variableDegrees, N*sizeof(int), cudaMemcpyHostToDevice);
     calcMarginals<<<(N+255)/256,256>>>(N, nQubits, d_marginals, d_factorMessages, d_variableDegrees, maxVariableDegree, llrp0, llrq0);
     cudaMemcpy(marginals, d_marginals, N*sizeof(double), cudaMemcpyDeviceToHost);
     cudaFree(d_marginals);
     cudaFree(d_factorMessages);
+    cudaFree(d_variableDegrees);
 }
 
 void bpCorrectionWrap(int N, int M, int nQubits, int nChecks, double* marginals, 
