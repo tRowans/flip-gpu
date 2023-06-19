@@ -98,6 +98,31 @@ void flip(int nQubits, int* variables, int* factors, int* variableToFactors, int
     }
 }
 
+//Flip only qubits with indices in a given range
+__global__
+void subsetFlip(int rangeStart, int rangeEnd, int* variables, int* factors, int* variableToFactors, int* variableDegrees, int maxVariableDegree)
+{
+    int threadID = blockIdx.x * blockDim.x + threadIdx.x; //One thread per qubit
+    if (threadID >= rangeStart && threadID < rangeEnd)
+    {
+        int unsatChecks = 0;
+        for (int i=0; i<variableDegrees[threadID]; ++i)
+        {
+            int stab = variableToFactors[maxVariableDegree*threadID+i];
+            if (factors[stab] == 1) unsatChecks++;
+        }
+        if (unsatChecks > variableDegrees[threadID]/2)
+        {
+            variables[threadID] = variables[threadID] ^ 1;
+            for (int i=0; i<variableDegrees[threadID]; ++i)
+            {
+                int stab = variableToFactors[maxVariableDegree*threadID+i];
+                atomicXor(&factors[stab],1);
+            }
+        }
+    }
+}
+
 //Probabilistic flip
 __global__
 void pflip(int nQubits, curandState_t* states, int* variables, int* factors, int* variableToFactors, int* variableDegrees, int maxVariableDegree)

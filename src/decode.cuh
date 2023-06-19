@@ -16,6 +16,8 @@ __global__ void calculateSyndrome(int M, int* variables, int* factors, int* fact
 
 __global__ void flip(int nQubits, int* variables, int* factors, int* variableToFactors, int* variableDegrees, int maxVariableDegree);
 
+__global__ void subsetFlip(int rangeStart, int rangeEnd, int* variables, int* factors, int* variableToFactors, int* variableDegrees, int maxVariableDegree);
+
 __global__ void pflip(int nQubits, curandState_t* states, int* variables, int* factors, 
         int* variableToFactors, int* variableDegrees, int maxVariableDegree);
 

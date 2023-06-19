@@ -257,9 +257,9 @@ TEST(flipTest, surface)
     int variablesZExpected[6] = {0,0,1,0,0,0};
     int factorsXExpected[1] = {1};
     int factorsZExpected[2] = {1,0};
-    flipWrap(5, 1, 4, 1, variablesX, factorsX, fourqsurface.variableToFactorsX, 
+    flipWrap(5, 1, 4, variablesX, factorsX, fourqsurface.variableToFactorsX, 
                 fourqsurface.variableDegreesX, fourqsurface.maxVariableDegreeX);
-    flipWrap(6, 2, 4, 2, variablesZ, factorsZ, fourqsurface.variableToFactorsZ, 
+    flipWrap(6, 2, 4, variablesZ, factorsZ, fourqsurface.variableToFactorsZ, 
                 fourqsurface.variableDegreesZ, fourqsurface.maxVariableDegreeZ);
     for (int i=0; i<5; ++i) EXPECT_EQ(variablesX[i], variablesXExpected[i]);
     for (int i=0; i<6; ++i) EXPECT_EQ(variablesZ[i], variablesZExpected[i]);
@@ -277,9 +277,9 @@ TEST(flipTest, colour2D)
     int variablesZExpected[10] = {1,0,1,0,1,0,0,0,0,0};
     int factorsXExpected[3] = {1,1,1};
     int factorsZExpected[3] = {0,0,1};
-    flipWrap(10, 3, 7, 3, variablesX, factorsX, sevenqcolour.variableToFactorsX, 
+    flipWrap(10, 3, 7, variablesX, factorsX, sevenqcolour.variableToFactorsX, 
                 sevenqcolour.variableDegreesX, sevenqcolour.maxVariableDegreeX);
-    flipWrap(10, 3, 7, 3, variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
+    flipWrap(10, 3, 7, variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
                 sevenqcolour.variableDegreesZ, sevenqcolour.maxVariableDegreeZ);
     for (int i=0; i<10; ++i)
     {
@@ -302,9 +302,9 @@ TEST(flipTest, colour2DMeasError)
     int variablesZExpected[10] = {0,1,1,0,0,0,0,1,0,0};
     int factorsXExpected[3] = {1,1,1};
     int factorsZExpected[3] = {0,0,0};
-    flipWrap(10, 3, 7, 3, variablesX, factorsX, sevenqcolour.variableToFactorsX, 
+    flipWrap(10, 3, 7, variablesX, factorsX, sevenqcolour.variableToFactorsX, 
                 sevenqcolour.variableDegreesX, sevenqcolour.maxVariableDegreeX);
-    flipWrap(10, 3, 7, 3, variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
+    flipWrap(10, 3, 7, variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
                 sevenqcolour.variableDegreesZ, sevenqcolour.maxVariableDegreeZ);
     for (int i=0; i<10; ++i)
     {
@@ -327,9 +327,9 @@ TEST(flipTest, colour3D)
     int variablesZExpected[14] = {1,0,0,1,0,0,1,0,0,0,0,0,0,0};
     int factorsXExpected[1] = {1};
     int factorsZExpected[9] = {0,1,0,1,0,1,0,0,0};
-    flipWrap(9, 1, 8, 1, variablesX, factorsX, eightq3Dcolour.variableToFactorsX, 
+    flipWrap(9, 1, 8, variablesX, factorsX, eightq3Dcolour.variableToFactorsX, 
                  eightq3Dcolour.variableDegreesX, eightq3Dcolour.maxVariableDegreeX);
-    flipWrap(14, 9, 8, 6, variablesZ, factorsZ, eightq3Dcolour.variableToFactorsZ,
+    flipWrap(14, 9, 8, variablesZ, factorsZ, eightq3Dcolour.variableToFactorsZ,
                  eightq3Dcolour.variableDegreesZ, eightq3Dcolour.maxVariableDegreeZ);
     for (int i=0; i<14; ++i) EXPECT_EQ(variablesZ[i], variablesZExpected[i]);
     for (int i=0; i<9; ++i)
@@ -349,9 +349,9 @@ TEST(flipTest, colour3DMeasError)
     int variablesZExpected[14] = {1,0,0,1,1,0,1,1,0,0,0,0,0,1};
     int factorsXExpected[1] = {1};
     int factorsZExpected[9] = {0,0,1,0,1,0,1,1,0};
-    flipWrap(9, 1, 8, 1, variablesX, factorsX, eightq3Dcolour.variableToFactorsX, 
+    flipWrap(9, 1, 8, variablesX, factorsX, eightq3Dcolour.variableToFactorsX, 
                  eightq3Dcolour.variableDegreesX, eightq3Dcolour.maxVariableDegreeX);
-    flipWrap(14, 9, 8, 6, variablesZ, factorsZ, eightq3Dcolour.variableToFactorsZ,
+    flipWrap(14, 9, 8, variablesZ, factorsZ, eightq3Dcolour.variableToFactorsZ,
                  eightq3Dcolour.variableDegreesZ, eightq3Dcolour.maxVariableDegreeZ);
     for (int i=0; i<14; ++i) EXPECT_EQ(variablesZ[i], variablesZExpected[i]);
     for (int i=0; i<9; ++i) 
@@ -360,6 +360,48 @@ TEST(flipTest, colour3DMeasError)
         EXPECT_EQ(factorsZ[i], factorsZExpected[i]);
     }
     EXPECT_EQ(factorsX[0], factorsXExpected[0]);
+}
+
+//------------------------------------------------------------
+
+TEST(subsetFlipTest, colour2D)
+{
+    int variablesX[10] = {1,0,0,0,0,0,0,0,0,0};
+    int variablesZ[10] = {0,0,0,0,0,0,1,0,0,0};
+    int factorsX[3] = {1,0,0};
+    int factorsZ[3] = {0,0,1};
+    int variablesXExpected[10] = {};
+    int variablesZExpected[10] = {0,0,0,0,0,0,1,0,0,0};
+    int factorsXExpected[3] = {};
+    int factorsZExpected[3] = {0,0,1};
+    subsetFlipWrap(10, 3, 0, 3, variablesX, factorsX, sevenqcolour.variableToFactorsX, 
+                sevenqcolour.variableDegreesX, sevenqcolour.maxVariableDegreeX);
+    subsetFlipWrap(10, 3, 0, 3, variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
+                sevenqcolour.variableDegreesZ, sevenqcolour.maxVariableDegreeZ);
+    for (int i=0; i<10; ++i)
+    {
+        EXPECT_EQ(variablesX[i], variablesXExpected[i]);
+        EXPECT_EQ(variablesZ[i], variablesZExpected[i]);
+    }
+    for (int i=0; i<3; ++i)
+    {
+        EXPECT_EQ(factorsX[i], factorsXExpected[i]);
+        EXPECT_EQ(factorsZ[i], factorsZExpected[i]);
+    }
+    subsetFlipWrap(10, 3, 3, 7, variablesX, factorsX, sevenqcolour.variableToFactorsX, 
+                sevenqcolour.variableDegreesX, sevenqcolour.maxVariableDegreeX);
+    subsetFlipWrap(10, 3, 3, 7, variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
+                sevenqcolour.variableDegreesZ, sevenqcolour.maxVariableDegreeZ);
+    for (int i=0; i<10; ++i)
+    {
+        EXPECT_EQ(variablesX[i], 0);
+        EXPECT_EQ(variablesZ[i], 0);
+    }
+    for (int i=0; i<3; ++i)
+    {
+        EXPECT_EQ(factorsX[i], 0);
+        EXPECT_EQ(factorsZ[i], 0);
+    }
 }
 
 //------------------------------------------------------------
@@ -376,9 +418,9 @@ TEST(pflipTest, surface)
     int factorsXExpected[1] = {1};
     int factorsZExpected[2] = {1,0};
     std::random_device rd{};
-    pflipWrap(5, 1, 4, 1, rd(), variablesX, factorsX, fourqsurface.variableToFactorsX, 
+    pflipWrap(5, 1, 4, rd(), variablesX, factorsX, fourqsurface.variableToFactorsX, 
                 fourqsurface.variableDegreesX, fourqsurface.maxVariableDegreeX);
-    pflipWrap(6, 2, 4, 2, rd(), variablesZ, factorsZ, fourqsurface.variableToFactorsZ, 
+    pflipWrap(6, 2, 4, rd(), variablesZ, factorsZ, fourqsurface.variableToFactorsZ, 
                 fourqsurface.variableDegreesZ, fourqsurface.maxVariableDegreeZ);
     for (int i=0; i<5; ++i) EXPECT_EQ(variablesX[i], variablesXExpected[i]);
     for (int i=0; i<6; ++i) EXPECT_EQ(variablesZ[i], variablesZExpected[i]);
@@ -403,9 +445,9 @@ TEST(pflipTest, colour2D)
     int factorsZExpected3[3] = {0,1,0};
     int factorsZExpected4[3] = {1,1,1};
     std::random_device rd{};
-    pflipWrap(10, 3, 7, 3, rd(), variablesX, factorsX, sevenqcolour.variableToFactorsX, 
+    pflipWrap(10, 3, 7, rd(), variablesX, factorsX, sevenqcolour.variableToFactorsX, 
                 sevenqcolour.variableDegreesX, sevenqcolour.maxVariableDegreeX);
-    pflipWrap(10, 3, 7, 3, rd(), variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
+    pflipWrap(10, 3, 7, rd(), variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
                 sevenqcolour.variableDegreesZ, sevenqcolour.maxVariableDegreeZ);
     int matches[4] = {1,1,1,1};
     for (int i=0; i<10; ++i)
@@ -447,9 +489,9 @@ TEST(pflipTest, colour2DMeasError)
     int factorsZExpected3[3] = {0,1,1};
     int factorsZExpected4[3] = {1,0,1};
     std::random_device rd{};
-    pflipWrap(10, 3, 7, 3, rd(), variablesX, factorsX, sevenqcolour.variableToFactorsX, 
+    pflipWrap(10, 3, 7, rd(), variablesX, factorsX, sevenqcolour.variableToFactorsX, 
                 sevenqcolour.variableDegreesX, sevenqcolour.maxVariableDegreeX);
-    pflipWrap(10, 3, 7, 3, rd(), variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
+    pflipWrap(10, 3, 7, rd(), variablesZ, factorsZ, sevenqcolour.variableToFactorsZ, 
                 sevenqcolour.variableDegreesZ, sevenqcolour.maxVariableDegreeZ);
     int matches[4] = {1,1,1,1};
     for (int i=0; i<10; ++i)

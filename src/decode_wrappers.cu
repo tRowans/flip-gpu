@@ -72,7 +72,7 @@ void calculateSyndromeWrap(int N, int M, int* variables, int* factors, int** fac
     cudaFree(d_factorDegrees);
 }
 
-void flipWrap(int N, int M, int nQubits, int nChecks, int* variables, int* factors, int** variableToFactors, int* variableDegrees, int maxVariableDegree)
+void flipWrap(int N, int M, int nQubits, int* variables, int* factors, int** variableToFactors, int* variableDegrees, int maxVariableDegree)
 {
     int *d_variables, *d_factors, *d_variableToFactors, *d_variableDegrees;
     cudaMalloc(&d_variables, N*sizeof(int));
@@ -92,7 +92,27 @@ void flipWrap(int N, int M, int nQubits, int nChecks, int* variables, int* facto
     cudaFree(d_variableDegrees);
 }
 
-void pflipWrap(int N, int M, int nQubits, int nChecks, unsigned int seed, int* variables, int* factors, 
+void subsetFlipWrap(int N, int M, int rangeStart, int rangeEnd, int* variables, int* factors, int** variableToFactors, int* variableDegrees, int maxVariableDegree)
+{
+    int *d_variables, *d_factors, *d_variableToFactors, *d_variableDegrees;
+    cudaMalloc(&d_variables, N*sizeof(int));
+    cudaMalloc(&d_factors, M*sizeof(int));
+    cudaMalloc(&d_variableToFactors, maxVariableDegree*N*sizeof(int));
+    cudaMalloc(&d_variableDegrees, N*sizeof(int));
+    cudaMemcpy(d_variables, variables, N*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_factors, factors, M*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_variableToFactors, variableToFactors[0], maxVariableDegree*N*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_variableDegrees, variableDegrees, N*sizeof(int), cudaMemcpyHostToDevice);
+    subsetFlip<<<((rangeEnd-rangeStart)+255)/256,256>>>(rangeStart, rangeEnd, d_variables, d_factors, d_variableToFactors, d_variableDegrees, maxVariableDegree);
+    cudaMemcpy(variables, d_variables, N*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(factors, d_factors, M*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaFree(d_variables);
+    cudaFree(d_factors);
+    cudaFree(d_variableToFactors);
+    cudaFree(d_variableDegrees);
+}
+
+void pflipWrap(int N, int M, int nQubits, unsigned int seed, int* variables, int* factors, 
         int** variableToFactors, int* variableDegrees, int maxVariableDegree)
 {
     int *d_variables, *d_factors, *d_variableToFactors, *d_variableDegrees;
